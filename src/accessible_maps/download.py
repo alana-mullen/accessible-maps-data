@@ -98,9 +98,8 @@ def _download_with_retries(
             )
 
             headers = {"User-Agent": "accessible-maps-data/0.1"}
-            if not force and destination.is_file() and _valid_zip(destination):
-                if etag_file.is_file():
-                    headers["If-None-Match"] = etag_file.read_text(encoding="utf-8").strip()
+            if not force and destination.is_file() and _valid_zip(destination) and etag_file.is_file():
+                headers["If-None-Match"] = etag_file.read_text(encoding="utf-8").strip()
 
             with requests.get(
                 url,

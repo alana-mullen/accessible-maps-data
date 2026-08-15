@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from ..delta.checksums import sha256_file, verify_file_checksum
+from ..delta.checksums import sha256_file
 from ..delta.manifest import load_manifest, validate_manifest
 from ..gpkg import list_layers
 from .metadata import ReleaseMetadata

@@ -52,9 +52,8 @@ def test_safe_extract_rejects_path_traversal(tmp_path: Path):
     destination = tmp_path / "extract"
     destination.mkdir()
 
-    with zipfile.ZipFile(archive) as zf:
-        with pytest.raises(DownloadError):
-            _safe_extract(zf, destination)
+    with zipfile.ZipFile(archive) as zf, pytest.raises(DownloadError):
+        _safe_extract(zf, destination)
 
 
 def test_download_with_retries_304_reuses_archive(tmp_path: Path, monkeypatch):

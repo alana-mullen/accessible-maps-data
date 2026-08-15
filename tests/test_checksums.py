@@ -1,4 +1,5 @@
 from pathlib import Path
+
 import pytest
 
 from accessible_maps.delta.checksums import (

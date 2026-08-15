@@ -1,13 +1,14 @@
 import sqlite3
 from pathlib import Path
 
+import pyogrio.errors
 import pytest
 
 from accessible_maps.gpkg import has_layer, list_layers, optimize_geopackage
 
 
 def test_list_layers_requires_existing_file(tmp_path: Path):
-    with pytest.raises(Exception):
+    with pytest.raises(pyogrio.errors.DataSourceError):
         list_layers(tmp_path / "missing.gpkg")
 
 

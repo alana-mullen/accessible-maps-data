@@ -12,7 +12,7 @@ def test_export_json_schemas(tmp_path: Path):
     assert "dataset_catalog.schema.json" in exported
     assert "release_metadata.schema.json" in exported
 
-    for name, path in exported.items():
+    for path in exported.values():
         assert path.is_file()
         content = json.loads(path.read_text(encoding="utf-8"))
         assert "$defs" in content or "properties" in content or "title" in content

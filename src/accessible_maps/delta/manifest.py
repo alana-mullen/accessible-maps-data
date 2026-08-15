@@ -86,9 +86,8 @@ def validate_manifest(
     delta_dir = Path(delta_dir)
 
     # 1. Signature check if signature exists or public_key is provided
-    if manifest.signature or public_key:
-        if not verify_manifest(manifest, public_key):
-            errors.append("Manifest cryptographic signature verification failed")
+    if (manifest.signature or public_key) and not verify_manifest(manifest, public_key):
+        errors.append("Manifest cryptographic signature verification failed")
 
     # 2. Check each table delta file
     for table_name, entry in manifest.tables.items():
