@@ -1,0 +1,9 @@
+geopandas>=1.0
+pyogrio>=0.9
+shapely>=2.0
+pandas>=2.0
+requests>=2.31
+cryptography>=42.0
+pydantic>=2.7
+zstandard>=0.22
+rich>=13.7

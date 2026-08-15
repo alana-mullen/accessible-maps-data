@@ -1,0 +1,258 @@
+name: Publish Accessibility Dataset Releases
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "Region to build and publish, or 'all'"
+        required: true
+        default: "all"
+      version:
+        description: "Release version string (e.g. 2026.08.1)"
+        required: true
+      draft:
+        description: "Publish as draft release"
+        type: boolean
+        default: false
+      prerelease:
+        description: "Publish as pre-release"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      regions: ${{ steps.set-regions.outputs.regions }}
+      version: ${{ steps.set-version.outputs.version }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Determine target regions
+        id: set-regions
+        run: |
+          INPUT_REGION="${{ github.event.inputs.region || 'all' }}"
+          if [ "$INPUT_REGION" = "all" ]; then
+            REGIONS_JSON=$(accessible-maps-build list-regions --plain | jq -R -s -c 'split("\n")[:-1]')
+          else
+            REGIONS_JSON=$(jq -n --arg r "$INPUT_REGION" '[$r]')
+          fi
+          echo "regions=$REGIONS_JSON" >> "$GITHUB_OUTPUT"
+
+      - name: Determine version
+        id: set-version
+        run: |
+          RAW_VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          VERSION="${RAW_VERSION#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  package-and-validate:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        region: ${{ fromJson(needs.setup.outputs.regions) }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install GDAL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - name: Get current week for cache key
+        id: cache-date
+        run: echo "week=$(date +'%Y-%U')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Geofabrik dataset for ${{ matrix.region }}
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: geofabrik-${{ matrix.region }}-${{ runner.os }}-${{ steps.cache-date.outputs.week }}
+          restore-keys: |
+            geofabrik-${{ matrix.region }}-${{ runner.os }}-
+
+      - name: Download and inspect dataset
+        run: |
+          mkdir -p data
+          accessible-maps-build inspect "${{ matrix.region }}" --data-dir data/
+
+      - name: Setup signing key (if configured)
+        id: signing-key
+        run: |
+          if [ -n "${{ secrets.DELTA_SIGNING_KEY }}" ]; then
+            echo "${{ secrets.DELTA_SIGNING_KEY }}" > .signing_key.pem
+            chmod 600 .signing_key.pem
+            echo "key_opt=--signing-key .signing_key.pem" >> "$GITHUB_OUTPUT"
+            echo "has_key=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "key_opt=" >> "$GITHUB_OUTPUT"
+            echo "has_key=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package and validate release bundle
+        run: |
+          mkdir -p releases
+          GPKG_PATH=$(find data/"${{ matrix.region }}" -name "*.gpkg" | head -n 1)
+
+          if [ -z "$GPKG_PATH" ] || [ ! -f "$GPKG_PATH" ]; then
+            echo "Error: GeoPackage not found for ${{ matrix.region }}"
+            exit 1
+          fi
+
+          accessible-maps-build package-release \
+            --target "$GPKG_PATH" \
+            --output-dir releases/"${{ matrix.region }}" \
+            --dataset-name "${{ matrix.region }}" \
+            --version "${{ needs.setup.outputs.version }}" \
+            ${{ steps.signing-key.outputs.key_opt }}
+
+          accessible-maps-build validate-release \
+            --release-dir releases/"${{ matrix.region }}"
+
+          # Clean up raw extracted directory to save disk space
+          rm -rf data/"${{ matrix.region }}"
+
+      - name: Shred signing key
+        if: always()
+        run: |
+          if [ -f .signing_key.pem ]; then
+            shred -u .signing_key.pem || rm -f .signing_key.pem
+          fi
+
+      - name: Emit job step summary
+        run: |
+          echo "### Packaged Release: \`${{ matrix.region }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Version: \`${{ needs.setup.outputs.version }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f releases/"${{ matrix.region }}"/release_notes.md ]; then
+            cat releases/"${{ matrix.region }}"/release_notes.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload region release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.region }}
+          path: releases/${{ matrix.region }}
+          retention-days: 7
+
+  publish-and-catalog:
+    needs: [setup, package-and-validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: downloaded-releases
+          pattern: release-*
+          merge-multiple: false
+
+      - name: Organize release bundles
+        run: |
+          mkdir -p releases
+          for dir in downloaded-releases/release-*; do
+            if [ -d "$dir" ]; then
+              REGION_NAME="${dir##*release-}"
+              mkdir -p releases/"$REGION_NAME"
+              cp -r "$dir"/* releases/"$REGION_NAME"/
+            fi
+          done
+
+      - name: Build global dataset catalog and export JSON schemas
+        run: |
+          mkdir -p catalog/schemas
+          accessible-maps-build build-catalog \
+            --metadata-files releases/*/metadata.json \
+            --repo "${{ github.repository }}" \
+            --output catalog/catalog.json \
+            --export-schemas-dir catalog/schemas/
+
+          echo "## Global Dataset Catalog Built" >> "$GITHUB_STEP_SUMMARY"
+          echo "Included regions:" >> "$GITHUB_STEP_SUMMARY"
+          for r in releases/*; do
+            if [ -d "$r" ]; then
+              echo "- \`$(basename "$r")\`" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+
+      - name: Publish releases to GitHub
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          for release_dir in releases/*; do
+            if [ -d "$release_dir" ]; then
+              echo "Publishing $(basename "$release_dir")..."
+              accessible-maps-build publish-release \
+                --release-dir "$release_dir" \
+                ${{ github.event.inputs.draft == 'true' && '--draft' || '' }} \
+                ${{ github.event.inputs.prerelease == 'true' && '--prerelease' || '' }}
+            fi
+          done
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: catalog
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

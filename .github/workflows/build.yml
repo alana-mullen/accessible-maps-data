@@ -1,0 +1,98 @@
+name: Build and Inspect Datasets
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: "Region to inspect/download, or 'all'"
+        required: true
+        default: "all"
+  schedule:
+    - cron: "0 3 * * 0"
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      regions: ${{ steps.set-regions.outputs.regions }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Determine target regions
+        id: set-regions
+        run: |
+          INPUT_REGION="${{ github.event.inputs.region || 'all' }}"
+          if [ "$INPUT_REGION" = "all" ]; then
+            REGIONS_JSON=$(accessible-maps-build list-regions --plain | jq -R -s -c 'split("\n")[:-1]')
+          else
+            REGIONS_JSON=$(jq -n --arg r "$INPUT_REGION" '[$r]')
+          fi
+          echo "regions=$REGIONS_JSON" >> "$GITHUB_OUTPUT"
+
+  build-and-inspect:
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        region: ${{ fromJson(needs.setup.outputs.regions) }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install GDAL
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - name: Get current week for cache key
+        id: cache-date
+        run: echo "week=$(date +'%Y-%U')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Geofabrik source dataset for ${{ matrix.region }}
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: geofabrik-${{ matrix.region }}-${{ runner.os }}-${{ steps.cache-date.outputs.week }}
+          restore-keys: |
+            geofabrik-${{ matrix.region }}-${{ runner.os }}-
+
+      - name: Download and inspect region
+        run: |
+          echo "### Region: \`${{ matrix.region }}\`" >> "$GITHUB_STEP_SUMMARY"
+          accessible-maps-build inspect "${{ matrix.region }}" --data-dir data/
+          echo "Successfully downloaded and inspected layer schema for \`${{ matrix.region }}\`." >> "$GITHUB_STEP_SUMMARY"
