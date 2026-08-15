@@ -158,7 +158,7 @@ def apply_delta_package(
                     base_records = base_df.reset_index(
                         names=[td.primary_key] if td.primary_key not in base_df.columns else []
                     ).to_dict(orient="records")
-            except Exception:
+            except (KeyError, ValueError, OSError, AttributeError):
                 base_records = []
 
         result_records = apply_table_delta(base_records, td)

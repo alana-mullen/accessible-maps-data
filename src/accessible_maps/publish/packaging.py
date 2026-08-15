@@ -67,7 +67,7 @@ def count_layer_rows(gpkg_path: Path) -> dict[str, int]:
         for layer in layers:
             df = pyogrio.read_dataframe(gpkg_path, layer=layer.name)
             counts[layer.name] = len(df)
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, AttributeError) as exc:
         LOGGER.warning("Could not count layer rows: %s", exc)
 
     return counts

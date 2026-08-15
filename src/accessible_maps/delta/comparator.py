@@ -109,7 +109,7 @@ def compare_gpkg_table(
                 base_records = base_df_copy.reset_index(names=[primary_key] if primary_key not in base_df_copy.columns else []).to_dict(orient="records")
             else:
                 base_records = base_df.reset_index(names=[primary_key] if primary_key not in base_df.columns else []).to_dict(orient="records")
-        except Exception:
+        except (KeyError, ValueError, OSError, AttributeError):
             base_records = []
 
     if target_gpkg is not None and target_gpkg.is_file():

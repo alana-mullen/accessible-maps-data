@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -33,7 +33,7 @@ class ReleaseMetadata:
     version: str
     base_version: str | None = None
     created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     assets: list[AssetInfo] = field(default_factory=list)
     table_stats: dict[str, int] = field(default_factory=dict)
@@ -232,7 +232,7 @@ class DatasetCatalog:
 
     catalog_version: str = "1.0"
     updated_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
+        default_factory=lambda: datetime.now(UTC).isoformat()
     )
     regions: dict[str, RegionCatalogEntry] = field(default_factory=dict)
 
@@ -244,7 +244,7 @@ class DatasetCatalog:
         base_download_url: str | None = None,
     ) -> None:
         """Register or update a release in the catalog with timestamps and location URLs."""
-        self.updated_at = datetime.now(timezone.utc).isoformat()
+        self.updated_at = datetime.now(UTC).isoformat()
 
         def _resolve_url(filename: str | None) -> str | None:
             if not filename:

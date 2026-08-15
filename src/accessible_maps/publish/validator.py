@@ -30,7 +30,7 @@ def validate_geopackage(path: Path) -> tuple[bool, list[str]]:
         layers = list_layers(path)
         if not layers:
             errors.append(f"GeoPackage has no layers: {path}")
-    except Exception as exc:
+    except (OSError, ValueError, KeyError, AttributeError) as exc:
         errors.append(f"Failed to read GeoPackage layers from {path}: {exc}")
 
     return len(errors) == 0, errors
@@ -68,7 +68,7 @@ def validate_checksums_file(directory: Path, checksums_path: Path | None = None)
 
     try:
         expected_hashes = parse_checksums_file(checksums_path)
-    except Exception as exc:
+    except (OSError, ValueError, UnicodeDecodeError) as exc:
         return False, [f"Failed to parse checksums file: {exc}"]
 
     for filename, expected_hash in expected_hashes.items():
@@ -106,7 +106,7 @@ def validate_release_package(
             metadata = ReleaseMetadata.from_json(metadata_path.read_text(encoding="utf-8"))
             if not metadata.dataset_name or not metadata.version or not metadata.release_tag:
                 errors.append("metadata.json missing required identifiers")
-        except Exception as exc:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
             errors.append(f"Invalid metadata.json format: {exc}")
 
     # 2. Checksums.txt check
@@ -127,7 +127,7 @@ def validate_release_package(
             )
             if not valid_man:
                 errors.extend(man_errors)
-        except Exception as exc:
+        except (ValueError, KeyError, TypeError, OSError) as exc:
             errors.append(f"Invalid manifest.json: {exc}")
 
     return len(errors) == 0, errors
