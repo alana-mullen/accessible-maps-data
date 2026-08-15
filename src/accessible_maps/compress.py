@@ -56,6 +56,7 @@ def compress_dir_tar_zstd(
                     if file_path.is_file() and not file_path.name.startswith("."):
                         arcname = str(file_path.relative_to(source_dir))
                         tar.add(file_path, arcname=arcname)
+            compressor.flush()
 
     return output_file
 
@@ -72,7 +73,8 @@ def decompress_dir_tar_zstd(
     dctx = zstd.ZstdDecompressor()
     with open(source_file, "rb") as ifh:
         with dctx.stream_reader(ifh) as reader:
-            with tarfile.open(mode="r|", fileobj=reader) as tar:
-                tar.extractall(path=output_dir)
+            with tarfile.open(mode="r|*", fileobj=reader) as tar:
+                for member in tar:
+                    tar.extract(member, path=output_dir)
 
     return output_dir

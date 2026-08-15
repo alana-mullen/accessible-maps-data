@@ -42,7 +42,7 @@ jobs:
           pip install -e .
 
       - name: Run test suite
-        run: pytest -q
+        run: pytest -v
 
       - name: Run Ruff linter
         run: ruff check .
