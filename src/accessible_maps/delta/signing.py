@@ -76,26 +76,34 @@ def load_private_key(key_input: str | Path | Ed25519PrivateKey) -> Ed25519Privat
         return key_input
 
     if isinstance(key_input, Path) or (isinstance(key_input, str) and Path(key_input).is_file()):
-        data = Path(key_input).read_bytes()
-        if b"BEGIN PRIVATE KEY" in data:
-            return load_pem_private_key(data, password=None)  # type: ignore
-        # Raw 32 bytes or raw base64 in file
         try:
-            raw_bytes = base64.b64decode(data.strip())
-            if len(raw_bytes) == 32:
-                return Ed25519PrivateKey.from_private_bytes(raw_bytes)
-        except Exception:
-            pass
-        if len(data) == 32:
-            return Ed25519PrivateKey.from_private_bytes(data)
+            data = Path(key_input).read_bytes()
+            if b"BEGIN PRIVATE KEY" in data:
+                return load_pem_private_key(data, password=None)  # type: ignore
+            try:
+                raw_bytes = base64.b64decode(data.strip())
+                if len(raw_bytes) == 32:
+                    return Ed25519PrivateKey.from_private_bytes(raw_bytes)
+            except Exception:
+                pass
+            if len(data) == 32:
+                return Ed25519PrivateKey.from_private_bytes(data)
+        except Exception as exc:
+            raise SigningError(f"Failed to read private key from file: {exc}") from exc
 
     if isinstance(key_input, str):
         key_str = key_input.strip()
         if "BEGIN PRIVATE KEY" in key_str:
-            return load_pem_private_key(key_str.encode("utf-8"), password=None)  # type: ignore
-        raw_bytes = base64.b64decode(key_str)
-        if len(raw_bytes) == 32:
-            return Ed25519PrivateKey.from_private_bytes(raw_bytes)
+            try:
+                return load_pem_private_key(key_str.encode("utf-8"), password=None)  # type: ignore
+            except Exception as exc:
+                raise SigningError(f"Invalid PEM private key: {exc}") from exc
+        try:
+            raw_bytes = base64.b64decode(key_str)
+            if len(raw_bytes) == 32:
+                return Ed25519PrivateKey.from_private_bytes(raw_bytes)
+        except Exception:
+            pass
 
     raise SigningError("Invalid or unsupported Ed25519 private key format")
 
@@ -106,25 +114,34 @@ def load_public_key(key_input: str | Path | Ed25519PublicKey) -> Ed25519PublicKe
         return key_input
 
     if isinstance(key_input, Path) or (isinstance(key_input, str) and Path(key_input).is_file()):
-        data = Path(key_input).read_bytes()
-        if b"BEGIN PUBLIC KEY" in data:
-            return load_pem_public_key(data)  # type: ignore
         try:
-            raw_bytes = base64.b64decode(data.strip())
-            if len(raw_bytes) == 32:
-                return Ed25519PublicKey.from_public_bytes(raw_bytes)
-        except Exception:
-            pass
-        if len(data) == 32:
-            return Ed25519PublicKey.from_public_bytes(data)
+            data = Path(key_input).read_bytes()
+            if b"BEGIN PUBLIC KEY" in data:
+                return load_pem_public_key(data)  # type: ignore
+            try:
+                raw_bytes = base64.b64decode(data.strip())
+                if len(raw_bytes) == 32:
+                    return Ed25519PublicKey.from_public_bytes(raw_bytes)
+            except Exception:
+                pass
+            if len(data) == 32:
+                return Ed25519PublicKey.from_public_bytes(data)
+        except Exception as exc:
+            raise SigningError(f"Failed to read public key from file: {exc}") from exc
 
     if isinstance(key_input, str):
         key_str = key_input.strip()
         if "BEGIN PUBLIC KEY" in key_str:
-            return load_pem_public_key(key_str.encode("utf-8"))  # type: ignore
-        raw_bytes = base64.b64decode(key_str)
-        if len(raw_bytes) == 32:
-            return Ed25519PublicKey.from_public_bytes(raw_bytes)
+            try:
+                return load_pem_public_key(key_str.encode("utf-8"))  # type: ignore
+            except Exception as exc:
+                raise SigningError(f"Invalid PEM public key: {exc}") from exc
+        try:
+            raw_bytes = base64.b64decode(key_str)
+            if len(raw_bytes) == 32:
+                return Ed25519PublicKey.from_public_bytes(raw_bytes)
+        except Exception:
+            pass
 
     raise SigningError("Invalid or unsupported Ed25519 public key format")
 
