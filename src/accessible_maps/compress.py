@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import tarfile
 from pathlib import Path
 import zstandard as zstd
@@ -48,15 +49,16 @@ def compress_dir_tar_zstd(
     output_file = Path(output_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
+    tar_buf = io.BytesIO()
+    with tarfile.open(fileobj=tar_buf, mode="w") as tar:
+        for file_path in sorted(source_dir.rglob("*")):
+            if file_path.is_file() and not file_path.name.startswith("."):
+                arcname = str(file_path.relative_to(source_dir))
+                tar.add(file_path, arcname=arcname)
+
     cctx = zstd.ZstdCompressor(level=level)
-    with open(output_file, "wb") as ofh:
-        with cctx.stream_writer(ofh) as compressor:
-            with tarfile.open(mode="w|", fileobj=compressor) as tar:
-                for file_path in sorted(source_dir.rglob("*")):
-                    if file_path.is_file() and not file_path.name.startswith("."):
-                        arcname = str(file_path.relative_to(source_dir))
-                        tar.add(file_path, arcname=arcname)
-            compressor.flush()
+    compressed_bytes = cctx.compress(tar_buf.getvalue())
+    output_file.write_bytes(compressed_bytes)
 
     return output_file
 
@@ -71,10 +73,9 @@ def decompress_dir_tar_zstd(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     dctx = zstd.ZstdDecompressor()
-    with open(source_file, "rb") as ifh:
-        with dctx.stream_reader(ifh) as reader:
-            with tarfile.open(mode="r|*", fileobj=reader) as tar:
-                for member in tar:
-                    tar.extract(member, path=output_dir)
+    decompressed_bytes = dctx.decompress(source_file.read_bytes())
+    tar_buf = io.BytesIO(decompressed_bytes)
+    with tarfile.open(fileobj=tar_buf, mode="r") as tar:
+        tar.extractall(path=output_dir)
 
     return output_dir
