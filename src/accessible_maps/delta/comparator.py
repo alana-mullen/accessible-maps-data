@@ -106,9 +106,13 @@ def compare_gpkg_table(
                 base_df_copy[geometry_column] = base_df_copy[geometry_column].apply(
                     lambda g: g.wkt if g is not None else None
                 )
-                base_records = base_df_copy.reset_index(names=[primary_key] if primary_key not in base_df_copy.columns else []).to_dict(orient="records")
+                base_records = base_df_copy.reset_index(
+                    names=[primary_key] if primary_key not in base_df_copy.columns else []
+                ).to_dict(orient="records")
             else:
-                base_records = base_df.reset_index(names=[primary_key] if primary_key not in base_df.columns else []).to_dict(orient="records")
+                base_records = base_df.reset_index(
+                    names=[primary_key] if primary_key not in base_df.columns else []
+                ).to_dict(orient="records")
         except (KeyError, ValueError, OSError, AttributeError):
             base_records = []
 
@@ -121,9 +125,13 @@ def compare_gpkg_table(
             target_df_copy[geometry_column] = target_df_copy[geometry_column].apply(
                 lambda g: g.wkt if g is not None else None
             )
-            target_records = target_df_copy.reset_index(names=[primary_key] if primary_key not in target_df_copy.columns else []).to_dict(orient="records")
+            target_records = target_df_copy.reset_index(
+                names=[primary_key] if primary_key not in target_df_copy.columns else []
+            ).to_dict(orient="records")
         else:
-            target_records = target_df.reset_index(names=[primary_key] if primary_key not in target_df.columns else []).to_dict(orient="records")
+            target_records = target_df.reset_index(
+                names=[primary_key] if primary_key not in target_df.columns else []
+            ).to_dict(orient="records")
 
     return compare_records(
         table_name=table_name,

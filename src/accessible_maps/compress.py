@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import io
-from pathlib import Path
 import tarfile
+from pathlib import Path
 
 import zstandard as zstd
 
@@ -14,7 +14,9 @@ def compress_file_zstd(
 ) -> Path:
     """Compress a single file with Zstandard."""
     source_file = Path(source_file)
-    output_file = Path(output_file) if output_file else source_file.with_suffix(source_file.suffix + ".zst")
+    output_file = (
+        Path(output_file) if output_file else source_file.with_suffix(source_file.suffix + ".zst")
+    )
     output_file.parent.mkdir(parents=True, exist_ok=True)
 
     cctx = zstd.ZstdCompressor(level=level)
@@ -77,6 +79,9 @@ def decompress_dir_tar_zstd(
     decompressed_bytes = dctx.decompress(source_file.read_bytes())
     tar_buf = io.BytesIO(decompressed_bytes)
     with tarfile.open(fileobj=tar_buf, mode="r") as tar:
-        tar.extractall(path=output_dir)
+        if hasattr(tarfile, "data_filter"):
+            tar.extractall(path=output_dir, filter="data")
+        else:
+            tar.extractall(path=output_dir)
 
     return output_dir

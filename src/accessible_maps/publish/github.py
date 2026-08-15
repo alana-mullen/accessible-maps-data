@@ -45,9 +45,13 @@ def publish_github_release(
 
     if not dry_run:
         if not repo:
-            raise GitHubPublishError("Missing repository identifier (e.g., owner/repo or GITHUB_REPOSITORY)")
+            raise GitHubPublishError(
+                "Missing repository identifier (e.g., owner/repo or GITHUB_REPOSITORY)"
+            )
         if not token:
-            raise GitHubPublishError("Missing authentication token (token arg or GITHUB_TOKEN env var)")
+            raise GitHubPublishError(
+                "Missing authentication token (token arg or GITHUB_TOKEN env var)"
+            )
 
     release_notes_path = release_dir / "release_notes.md"
     release_notes = (
@@ -92,7 +96,9 @@ def publish_github_release(
     if resp.status_code == 422:
         # Release tag might already exist; query it
         LOGGER.info("Release tag %s exists, fetching existing release...", metadata.release_tag)
-        get_resp = requests.get(f"{api_url}/tags/{metadata.release_tag}", headers=headers, timeout=30.0)
+        get_resp = requests.get(
+            f"{api_url}/tags/{metadata.release_tag}", headers=headers, timeout=30.0
+        )
         get_resp.raise_for_status()
         release_data = get_resp.json()
     else:
@@ -100,7 +106,9 @@ def publish_github_release(
         release_data = resp.json()
 
     release_id = release_data["id"]
-    upload_url_template = release_data["upload_url"]  # Format: https://uploads.github.com/.../assets{?name,label}
+    upload_url_template = release_data[
+        "upload_url"
+    ]  # Format: https://uploads.github.com/.../assets{?name,label}
     base_upload_url = upload_url_template.split("{")[0]
 
     # 2. Upload assets

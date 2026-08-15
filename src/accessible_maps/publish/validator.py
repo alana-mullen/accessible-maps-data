@@ -57,7 +57,9 @@ def parse_checksums_file(path: Path) -> dict[str, str]:
     return mapping
 
 
-def validate_checksums_file(directory: Path, checksums_path: Path | None = None) -> tuple[bool, list[str]]:
+def validate_checksums_file(
+    directory: Path, checksums_path: Path | None = None
+) -> tuple[bool, list[str]]:
     """Verify all files listed in checksums.txt match their hashes in directory."""
     errors: list[str] = []
     directory = Path(directory)

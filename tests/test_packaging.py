@@ -1,5 +1,5 @@
-from pathlib import Path
 import zipfile
+from pathlib import Path
 
 from accessible_maps.delta.checksums import sha256_file
 from accessible_maps.publish.packaging import (

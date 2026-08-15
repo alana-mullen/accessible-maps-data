@@ -32,9 +32,7 @@ class ReleaseMetadata:
     dataset_name: str
     version: str
     base_version: str | None = None
-    created_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     assets: list[AssetInfo] = field(default_factory=list)
     table_stats: dict[str, int] = field(default_factory=dict)
     delta_stats: dict[str, int] | None = None
@@ -77,7 +75,9 @@ class ReleaseMetadata:
             assets=assets,
             table_stats=dict(data.get("table_stats", {})),
             delta_stats=data.get("delta_stats"),
-            attribution=data.get("attribution", "© OpenStreetMap contributors, licensed under ODbL"),
+            attribution=data.get(
+                "attribution", "© OpenStreetMap contributors, licensed under ODbL"
+            ),
             license=data.get("license", "ODbL-1.0"),
             manifest_signature=signing.get("manifest_signature"),
             public_key=signing.get("public_key"),
@@ -99,51 +99,59 @@ class ReleaseMetadata:
         if self.base_version:
             lines.append(f"- **Delta Base Version:** `{self.base_version}`")
 
-        lines.extend([
-            f"- **Release Tag:** `{self.release_tag}`",
-            f"- **Published:** `{self.created_at}`",
-            f"- **License:** [{self.license}](https://opendatacommons.org/licenses/odbl/)",
-            f"- **Attribution:** {self.attribution}",
-            "",
-            "## Table Summary",
-            "",
-            "| Layer / Table | Feature Count |",
-            "| :--- | :--- |",
-        ])
+        lines.extend(
+            [
+                f"- **Release Tag:** `{self.release_tag}`",
+                f"- **Published:** `{self.created_at}`",
+                f"- **License:** [{self.license}](https://opendatacommons.org/licenses/odbl/)",
+                f"- **Attribution:** {self.attribution}",
+                "",
+                "## Table Summary",
+                "",
+                "| Layer / Table | Feature Count |",
+                "| :--- | :--- |",
+            ]
+        )
 
         for table, count in sorted(self.table_stats.items()):
             lines.append(f"| `{table}` | {count:,} |")
 
         if self.delta_stats:
-            lines.extend([
-                "",
-                "## Delta Changes (vs Base)",
-                "",
-                f"- **New Features (Inserts):** {self.delta_stats.get('inserts', 0):,}",
-                f"- **Modified Features (Updates):** {self.delta_stats.get('updates', 0):,}",
-                f"- **Removed Features (Deletes):** {self.delta_stats.get('deletes', 0):,}",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Delta Changes (vs Base)",
+                    "",
+                    f"- **New Features (Inserts):** {self.delta_stats.get('inserts', 0):,}",
+                    f"- **Modified Features (Updates):** {self.delta_stats.get('updates', 0):,}",
+                    f"- **Removed Features (Deletes):** {self.delta_stats.get('deletes', 0):,}",
+                ]
+            )
 
-        lines.extend([
-            "",
-            "## Assets & Checksums",
-            "",
-            "| Asset File | Size (Bytes) | SHA-256 Checksum |",
-            "| :--- | :--- | :--- |",
-        ])
+        lines.extend(
+            [
+                "",
+                "## Assets & Checksums",
+                "",
+                "| Asset File | Size (Bytes) | SHA-256 Checksum |",
+                "| :--- | :--- | :--- |",
+            ]
+        )
 
         for asset in self.assets:
             lines.append(f"| `{asset.filename}` | {asset.size_bytes:,} | `{asset.sha256}` |")
 
         if self.manifest_signature:
-            lines.extend([
-                "",
-                "## Cryptographic Verification",
-                "",
-                "The release manifest is cryptographically signed using Ed25519.",
-                f"- **Public Key:** `{self.public_key}`",
-                f"- **Manifest Signature:** `{self.manifest_signature}`",
-            ])
+            lines.extend(
+                [
+                    "",
+                    "## Cryptographic Verification",
+                    "",
+                    "The release manifest is cryptographically signed using Ed25519.",
+                    f"- **Public Key:** `{self.public_key}`",
+                    f"- **Manifest Signature:** `{self.manifest_signature}`",
+                ]
+            )
 
         lines.append("")
         return "\n".join(lines)
@@ -231,9 +239,7 @@ class DatasetCatalog:
     """Global catalog index of all regional datasets, timestamped updates, and delta paths."""
 
     catalog_version: str = "1.0"
-    updated_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     regions: dict[str, RegionCatalogEntry] = field(default_factory=dict)
 
     def add_release(
@@ -252,15 +258,19 @@ class DatasetCatalog:
             if base_download_url:
                 return f"{base_download_url.rstrip('/')}/{metadata.release_tag}/{filename}"
             if repo:
-                return f"https://github.com/{repo}/releases/download/{metadata.release_tag}/{filename}"
+                return (
+                    f"https://github.com/{repo}/releases/download/{metadata.release_tag}/{filename}"
+                )
             return None
 
         full_asset = next(
             (a for a in metadata.assets if a.filename.endswith((".gpkg.zip", ".gpkg"))),
             None,
         )
-        full_download_url = full_asset.download_url if full_asset and full_asset.download_url else (
-            _resolve_url(full_asset.filename) if full_asset else None
+        full_download_url = (
+            full_asset.download_url
+            if full_asset and full_asset.download_url
+            else (_resolve_url(full_asset.filename) if full_asset else None)
         )
 
         entry = self.regions.get(metadata.dataset_name)
@@ -299,17 +309,24 @@ class DatasetCatalog:
                 (a for a in metadata.assets if a.filename == "manifest.json"),
                 None,
             )
-            delta_download_url = delta_asset.download_url if delta_asset and delta_asset.download_url else (
-                _resolve_url(delta_asset.filename) if delta_asset else None
+            delta_download_url = (
+                delta_asset.download_url
+                if delta_asset and delta_asset.download_url
+                else (_resolve_url(delta_asset.filename) if delta_asset else None)
             )
-            manifest_url = manifest_asset.download_url if manifest_asset and manifest_asset.download_url else (
-                _resolve_url("manifest.json") if manifest_asset else None
+            manifest_url = (
+                manifest_asset.download_url
+                if manifest_asset and manifest_asset.download_url
+                else (_resolve_url("manifest.json") if manifest_asset else None)
             )
 
             # Avoid duplicates for same from/to version
             entry.available_deltas = [
-                d for d in entry.available_deltas
-                if not (d.from_version == metadata.base_version and d.to_version == metadata.version)
+                d
+                for d in entry.available_deltas
+                if not (
+                    d.from_version == metadata.base_version and d.to_version == metadata.version
+                )
             ]
 
             entry.available_deltas.append(
@@ -341,10 +358,7 @@ class DatasetCatalog:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DatasetCatalog:
-        regions = {
-            k: RegionCatalogEntry.from_dict(v)
-            for k, v in data.get("regions", {}).items()
-        }
+        regions = {k: RegionCatalogEntry.from_dict(v) for k, v in data.get("regions", {}).items()}
         return cls(
             catalog_version=data.get("catalog_version", "1.0"),
             updated_at=data.get("updated_at", ""),

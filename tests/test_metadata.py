@@ -76,7 +76,10 @@ def test_dataset_catalog_add_release_and_urls():
     assert london_entry.latest_version == "1.0"
     assert london_entry.latest_updated_at == "2026-08-01T12:00:00+00:00"
     assert london_entry.full_dataset_sha256 == "aaa"
-    assert london_entry.full_dataset_download_url == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.0-london/london.gpkg.zip"
+    assert (
+        london_entry.full_dataset_download_url
+        == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.0-london/london.gpkg.zip"
+    )
 
     # Add delta release
     meta2 = ReleaseMetadata(
@@ -108,12 +111,20 @@ def test_dataset_catalog_add_release_and_urls():
     assert delta.from_version == "1.0"
     assert delta.to_version == "1.1"
     assert delta.updated_at == "2026-08-15T12:00:00+00:00"
-    assert delta.download_url == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.1-london/london-delta-1.0-to-1.1.zip"
-    assert delta.manifest_url == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.1-london/manifest.json"
+    assert (
+        delta.download_url
+        == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.1-london/london-delta-1.0-to-1.1.zip"
+    )
+    assert (
+        delta.manifest_url
+        == "https://github.com/alana-mullen/accessible-maps-data/releases/download/v1.1-london/manifest.json"
+    )
 
     # Test catalog json roundtrip
     cat_json = catalog.to_json()
     cat_reloaded = DatasetCatalog.from_json(cat_json)
     assert "london" in cat_reloaded.regions
     assert cat_reloaded.regions["london"].latest_version == "1.1"
-    assert cat_reloaded.regions["london"].available_deltas[0].updated_at == "2026-08-15T12:00:00+00:00"
+    assert (
+        cat_reloaded.regions["london"].available_deltas[0].updated_at == "2026-08-15T12:00:00+00:00"
+    )

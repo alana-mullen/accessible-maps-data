@@ -61,7 +61,11 @@ def download_region(
     )
 
     gpkg = _find_existing_gpkg(extract_dir)
-    if gpkg is not None and archive.exists() and extract_dir.stat().st_mtime >= archive.stat().st_mtime:
+    if (
+        gpkg is not None
+        and archive.exists()
+        and extract_dir.stat().st_mtime >= archive.stat().st_mtime
+    ):
         LOGGER.info("Using existing extraction: %s", gpkg)
         return gpkg
 
@@ -98,7 +102,12 @@ def _download_with_retries(
             )
 
             headers = {"User-Agent": "accessible-maps-data/0.1"}
-            if not force and destination.is_file() and _valid_zip(destination) and etag_file.is_file():
+            if (
+                not force
+                and destination.is_file()
+                and _valid_zip(destination)
+                and etag_file.is_file()
+            ):
                 headers["If-None-Match"] = etag_file.read_text(encoding="utf-8").strip()
 
             with requests.get(
@@ -137,7 +146,9 @@ def _download_with_retries(
                             "•",
                             TimeRemainingColumn(),
                         ) as progress:
-                            task = progress.add_task("download", filename=destination.name, total=total_size)
+                            task = progress.add_task(
+                                "download", filename=destination.name, total=total_size
+                            )
                             for chunk in response.iter_content(chunk_size=1024 * 1024):
                                 if chunk:
                                     tmp.write(chunk)
@@ -175,9 +186,7 @@ def _download_with_retries(
         LOGGER.warning("Network update check failed, using existing local archive %s", destination)
         return
 
-    raise DownloadError(
-        f"Unable to download {url} after {attempts} attempts"
-    ) from last_error
+    raise DownloadError(f"Unable to download {url} after {attempts} attempts") from last_error
 
 
 def _valid_zip(path: Path) -> bool:
@@ -219,9 +228,7 @@ def _safe_extract(zf: zipfile.ZipFile, destination: Path) -> None:
         target = (destination / member.filename).resolve()
 
         if destination != target and destination not in target.parents:
-            raise DownloadError(
-                f"Unsafe ZIP member path: {member.filename}"
-            )
+            raise DownloadError(f"Unsafe ZIP member path: {member.filename}")
 
     zf.extractall(destination)
 
@@ -239,8 +246,6 @@ def _find_gpkg(directory: Path) -> Path | None:
         return None
 
     if len(matches) > 1:
-        raise DownloadError(
-            f"Expected one GeoPackage, found {len(matches)} in {directory}"
-        )
+        raise DownloadError(f"Expected one GeoPackage, found {len(matches)} in {directory}")
 
     return matches[0]

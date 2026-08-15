@@ -62,11 +62,17 @@ def build_parser() -> argparse.ArgumentParser:
     )
     gen_delta.add_argument("--target", type=Path, required=True, help="Target (newer) GeoPackage")
     gen_delta.add_argument("--base", type=Path, default=None, help="Base (older) GeoPackage")
-    gen_delta.add_argument("--output-dir", type=Path, required=True, help="Output directory for delta package")
-    gen_delta.add_argument("--dataset-name", default="accessible-maps", help="Dataset name identifier")
+    gen_delta.add_argument(
+        "--output-dir", type=Path, required=True, help="Output directory for delta package"
+    )
+    gen_delta.add_argument(
+        "--dataset-name", default="accessible-maps", help="Dataset name identifier"
+    )
     gen_delta.add_argument("--base-version", default="v1", help="Base version tag")
     gen_delta.add_argument("--target-version", default="v2", help="Target version tag")
-    gen_delta.add_argument("--signing-key", type=Path, default=None, help="Path to Ed25519 private key")
+    gen_delta.add_argument(
+        "--signing-key", type=Path, default=None, help="Path to Ed25519 private key"
+    )
     gen_delta.set_defaults(handler=_generate_delta)
 
     # apply-delta
@@ -74,10 +80,14 @@ def build_parser() -> argparse.ArgumentParser:
         "apply-delta",
         help="Validate and apply delta package to reconstruct target dataset.",
     )
-    apply_delta.add_argument("--delta-dir", type=Path, required=True, help="Directory containing delta package")
+    apply_delta.add_argument(
+        "--delta-dir", type=Path, required=True, help="Directory containing delta package"
+    )
     apply_delta.add_argument("--output", type=Path, required=True, help="Output GeoPackage path")
     apply_delta.add_argument("--base", type=Path, default=None, help="Base GeoPackage path")
-    apply_delta.add_argument("--public-key", type=Path, default=None, help="Path to Ed25519 public key")
+    apply_delta.add_argument(
+        "--public-key", type=Path, default=None, help="Path to Ed25519 public key"
+    )
     apply_delta.set_defaults(handler=_apply_delta)
 
     # verify-delta
@@ -85,8 +95,12 @@ def build_parser() -> argparse.ArgumentParser:
         "verify-delta",
         help="Verify manifest signature and delta file checksums.",
     )
-    verify_delta.add_argument("--delta-dir", type=Path, required=True, help="Directory containing delta package")
-    verify_delta.add_argument("--public-key", type=Path, default=None, help="Optional Ed25519 public key")
+    verify_delta.add_argument(
+        "--delta-dir", type=Path, required=True, help="Directory containing delta package"
+    )
+    verify_delta.add_argument(
+        "--public-key", type=Path, default=None, help="Optional Ed25519 public key"
+    )
     verify_delta.set_defaults(handler=_verify_delta)
 
     # generate-keys
@@ -94,7 +108,9 @@ def build_parser() -> argparse.ArgumentParser:
         "generate-keys",
         help="Generate a new Ed25519 keypair for signing deltas.",
     )
-    gen_keys.add_argument("--output-dir", type=Path, default=Path("keys"), help="Directory to save keys")
+    gen_keys.add_argument(
+        "--output-dir", type=Path, default=Path("keys"), help="Directory to save keys"
+    )
     gen_keys.add_argument("--prefix", default="delta_key", help="Key file prefix")
     gen_keys.set_defaults(handler=_generate_keys)
 
@@ -104,13 +120,17 @@ def build_parser() -> argparse.ArgumentParser:
         help="Bundle dataset, delta updates, checksums, and metadata into a release folder.",
     )
     pkg_release.add_argument("--target", type=Path, required=True, help="Target GeoPackage")
-    pkg_release.add_argument("--output-dir", type=Path, required=True, help="Release bundle directory")
+    pkg_release.add_argument(
+        "--output-dir", type=Path, required=True, help="Release bundle directory"
+    )
     pkg_release.add_argument("--dataset-name", required=True, help="Dataset name / region")
     pkg_release.add_argument("--version", required=True, help="Release version string")
     pkg_release.add_argument("--base", type=Path, default=None, help="Base GeoPackage for delta")
     pkg_release.add_argument("--base-version", default=None, help="Base version for delta")
     pkg_release.add_argument("--signing-key", type=Path, default=None, help="Ed25519 private key")
-    pkg_release.add_argument("--no-optimize", action="store_true", help="Skip SQLite database optimization")
+    pkg_release.add_argument(
+        "--no-optimize", action="store_true", help="Skip SQLite database optimization"
+    )
     pkg_release.set_defaults(handler=_package_release)
 
     # validate-release
@@ -118,8 +138,12 @@ def build_parser() -> argparse.ArgumentParser:
         "validate-release",
         help="Validate consistency, checksums, and signatures of a release bundle.",
     )
-    val_release.add_argument("--release-dir", type=Path, required=True, help="Release bundle directory")
-    val_release.add_argument("--public-key", type=Path, default=None, help="Optional Ed25519 public key")
+    val_release.add_argument(
+        "--release-dir", type=Path, required=True, help="Release bundle directory"
+    )
+    val_release.add_argument(
+        "--public-key", type=Path, default=None, help="Optional Ed25519 public key"
+    )
     val_release.set_defaults(handler=_validate_release)
 
     # publish-release
@@ -127,13 +151,19 @@ def build_parser() -> argparse.ArgumentParser:
         "publish-release",
         help="Validate and publish a release bundle to GitHub Releases.",
     )
-    pub_release.add_argument("--release-dir", type=Path, required=True, help="Release bundle directory")
+    pub_release.add_argument(
+        "--release-dir", type=Path, required=True, help="Release bundle directory"
+    )
     pub_release.add_argument("--repo", default=None, help="GitHub repository (owner/repo)")
     pub_release.add_argument("--token", default=None, help="GitHub authentication token")
     pub_release.add_argument("--draft", action="store_true", help="Publish as draft release")
     pub_release.add_argument("--prerelease", action="store_true", help="Publish as pre-release")
-    pub_release.add_argument("--dry-run", action="store_true", help="Simulate publishing without network calls")
-    pub_release.add_argument("--public-key", type=Path, default=None, help="Optional Ed25519 public key")
+    pub_release.add_argument(
+        "--dry-run", action="store_true", help="Simulate publishing without network calls"
+    )
+    pub_release.add_argument(
+        "--public-key", type=Path, default=None, help="Optional Ed25519 public key"
+    )
     pub_release.set_defaults(handler=_publish_release)
 
     # build-catalog
@@ -141,11 +171,22 @@ def build_parser() -> argparse.ArgumentParser:
         "build-catalog",
         help="Build global catalog.json from release metadata files.",
     )
-    cat_cmd.add_argument("--metadata-files", type=Path, nargs="+", required=True, help="List of metadata.json files")
-    cat_cmd.add_argument("--output", type=Path, default=Path("catalog.json"), help="Output catalog path")
-    cat_cmd.add_argument("--repo", default=None, help="GitHub repo (e.g. owner/repo) to generate download URLs")
+    cat_cmd.add_argument(
+        "--metadata-files", type=Path, nargs="+", required=True, help="List of metadata.json files"
+    )
+    cat_cmd.add_argument(
+        "--output", type=Path, default=Path("catalog.json"), help="Output catalog path"
+    )
+    cat_cmd.add_argument(
+        "--repo", default=None, help="GitHub repo (e.g. owner/repo) to generate download URLs"
+    )
     cat_cmd.add_argument("--base-url", default=None, help="Base URL for asset downloads")
-    cat_cmd.add_argument("--export-schemas-dir", type=Path, default=None, help="Optional directory to export JSON schemas")
+    cat_cmd.add_argument(
+        "--export-schemas-dir",
+        type=Path,
+        default=None,
+        help="Optional directory to export JSON schemas",
+    )
     cat_cmd.set_defaults(handler=_build_catalog)
 
     # export-schemas
@@ -153,7 +194,9 @@ def build_parser() -> argparse.ArgumentParser:
         "export-schemas",
         help="Export JSON Schema definitions for client Kotlin validation.",
     )
-    schema_cmd.add_argument("--output-dir", type=Path, default=Path("schemas"), help="Output directory for schemas")
+    schema_cmd.add_argument(
+        "--output-dir", type=Path, default=Path("schemas"), help="Output directory for schemas"
+    )
     schema_cmd.set_defaults(handler=_export_schemas)
 
     return parser
@@ -165,7 +208,11 @@ def _list_regions(args: argparse.Namespace) -> int:
             print(region.name)
         return 0
 
-    table = Table(title="Configured Accessible Maps UK Sub-Regions", show_header=True, header_style="bold cyan")
+    table = Table(
+        title="Configured Accessible Maps UK Sub-Regions",
+        show_header=True,
+        header_style="bold cyan",
+    )
     table.add_column("Region Identifier", style="bold green")
     table.add_column("Geofabrik Source URL", style="dim")
 
@@ -177,7 +224,9 @@ def _list_regions(args: argparse.Namespace) -> int:
 
 
 def _inspect(args: argparse.Namespace) -> int:
-    console.print(f"[bold blue]Downloading and inspecting region:[/bold blue] [green]{args.region}[/green]")
+    console.print(
+        f"[bold blue]Downloading and inspecting region:[/bold blue] [green]{args.region}[/green]"
+    )
     prepare_region(args.region, data_dir=args.data_dir)
     return 0
 
@@ -227,7 +276,9 @@ def _verify_delta(args: argparse.Namespace) -> int:
         public_key=args.public_key,
     )
     if valid:
-        console.print("[bold green]Delta package validation successful: all checksums and signatures verified.[/bold green]")
+        console.print(
+            "[bold green]Delta package validation successful: all checksums and signatures verified.[/bold green]"
+        )
         return 0
     else:
         console.print("[bold red]Delta package validation FAILED:[/bold red]")
@@ -255,7 +306,9 @@ def _package_release(args: argparse.Namespace) -> int:
         signing_key=args.signing_key,
         optimize_db=not getattr(args, "no_optimize", False),
     )
-    console.print(f"[bold green]Packaged release bundle[/bold green] [cyan]'{metadata.release_tag}'[/cyan] into {out_dir}:")
+    console.print(
+        f"[bold green]Packaged release bundle[/bold green] [cyan]'{metadata.release_tag}'[/cyan] into {out_dir}:"
+    )
     console.print(f"  Assets: {len(metadata.assets)}")
     console.print(f"  Layers: {len(metadata.table_stats)}")
     return 0
@@ -264,7 +317,9 @@ def _package_release(args: argparse.Namespace) -> int:
 def _validate_release(args: argparse.Namespace) -> int:
     valid, errors = validate_release_package(args.release_dir, public_key=args.public_key)
     if valid:
-        console.print("[bold green]Release validation successful: metadata, checksums, and signatures verified.[/bold green]")
+        console.print(
+            "[bold green]Release validation successful: metadata, checksums, and signatures verified.[/bold green]"
+        )
         return 0
     else:
         console.print("[bold red]Release validation FAILED:[/bold red]")
@@ -284,9 +339,13 @@ def _publish_release(args: argparse.Namespace) -> int:
         public_key=args.public_key,
     )
     if args.dry_run:
-        console.print(f"[bold yellow]Dry run successful for release {res['release_tag']}.[/bold yellow]")
+        console.print(
+            f"[bold yellow]Dry run successful for release {res['release_tag']}.[/bold yellow]"
+        )
     else:
-        console.print(f"[bold green]Published release {res['release_tag']} (URL: {res.get('html_url')}).[/bold green]")
+        console.print(
+            f"[bold green]Published release {res['release_tag']} (URL: {res.get('html_url')}).[/bold green]"
+        )
     return 0
 
 
@@ -298,18 +357,24 @@ def _build_catalog(args: argparse.Namespace) -> int:
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(catalog.to_json(indent=2), encoding="utf-8")
-    console.print(f"[bold green]Built catalog with {len(catalog.regions)} regions at[/bold green] [cyan]{args.output}[/cyan]")
+    console.print(
+        f"[bold green]Built catalog with {len(catalog.regions)} regions at[/bold green] [cyan]{args.output}[/cyan]"
+    )
 
     if args.export_schemas_dir:
         exported = export_json_schemas(args.export_schemas_dir)
-        console.print(f"[bold green]Exported {len(exported)} JSON Schemas to[/bold green] [cyan]{args.export_schemas_dir}[/cyan]")
+        console.print(
+            f"[bold green]Exported {len(exported)} JSON Schemas to[/bold green] [cyan]{args.export_schemas_dir}[/cyan]"
+        )
 
     return 0
 
 
 def _export_schemas(args: argparse.Namespace) -> int:
     exported = export_json_schemas(args.output_dir)
-    console.print(f"[bold green]Exported JSON schemas to[/bold green] [cyan]{args.output_dir}[/cyan]:")
+    console.print(
+        f"[bold green]Exported JSON schemas to[/bold green] [cyan]{args.output_dir}[/cyan]:"
+    )
     for name, path in exported.items():
         console.print(f"  - {name} ({path})")
     return 0

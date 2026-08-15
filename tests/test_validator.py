@@ -62,7 +62,11 @@ def test_validate_release_package(tmp_path: Path):
         dataset_name="test",
         version="1.0",
         assets=[
-            AssetInfo(filename="dataset.zip", sha256=sha256_file(data_file), size_bytes=data_file.stat().st_size)
+            AssetInfo(
+                filename="dataset.zip",
+                sha256=sha256_file(data_file),
+                size_bytes=data_file.stat().st_size,
+            )
         ],
     )
     (rel_dir / "metadata.json").write_text(metadata.to_json(), encoding="utf-8")

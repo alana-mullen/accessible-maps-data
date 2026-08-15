@@ -104,9 +104,7 @@ class DeltaManifest:
     base_version: str
     target_version: str
     format_version: str = "1.0"
-    created_at: str = field(
-        default_factory=lambda: datetime.now(UTC).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     base_sha256: str | None = None
     base_size_bytes: int | None = None
     target_sha256: str | None = None
@@ -178,8 +176,7 @@ class DeltaManifest:
         base_info = data.get("base_dataset", {})
         target_info = data.get("target_dataset", {})
         tables_dict = {
-            k: TableManifestEntry.from_dict(v)
-            for k, v in data.get("tables", {}).items()
+            k: TableManifestEntry.from_dict(v) for k, v in data.get("tables", {}).items()
         }
         signing_info = data.get("signing", {})
 

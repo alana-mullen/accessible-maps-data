@@ -22,7 +22,10 @@ def test_compress_and_decompress_file_zstd(tmp_path: Path):
     decompress_file_zstd(zst_file, decompressed_file)
 
     assert decompressed_file.is_file()
-    assert decompressed_file.read_text(encoding="utf-8") == "Hello from Accessible Maps Zstandard test payload!"
+    assert (
+        decompressed_file.read_text(encoding="utf-8")
+        == "Hello from Accessible Maps Zstandard test payload!"
+    )
 
 
 def test_compress_and_decompress_dir_tar_zstd(tmp_path: Path):

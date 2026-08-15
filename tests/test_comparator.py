@@ -19,7 +19,9 @@ def test_compare_records_detects_all_diff_types():
         {"fid": 4, "name": "New Footway", "highway": "footway", "geometry": "LINESTRING(0 0, 1 1)"},
     ]
 
-    delta = compare_records("accessibility_features", base_records, target_records, primary_key="fid")
+    delta = compare_records(
+        "accessibility_features", base_records, target_records, primary_key="fid"
+    )
 
     assert delta.table_name == "accessibility_features"
     assert delta.insert_count == 1

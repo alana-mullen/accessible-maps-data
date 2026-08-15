@@ -81,7 +81,7 @@ def test_manifest_validation_detects_tampering(tmp_path: Path):
     )
 
     # Tamper with delta file content after manifest creation
-    delta_file.write_text("{\"corrupted\": true}", encoding="utf-8")
+    delta_file.write_text('{"corrupted": true}', encoding="utf-8")
 
     valid, errors = validate_manifest(manifest, delta_dir, public_key=pub_key)
     assert not valid

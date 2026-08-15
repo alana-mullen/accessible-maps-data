@@ -9,9 +9,7 @@ def test_regions_are_unique():
 
 def test_north_west_url():
     region = get_region("north-west")
-    assert region.source_url.endswith(
-        "/england/north-west-latest-free.gpkg.zip"
-    )
+    assert region.source_url.endswith("/england/north-west-latest-free.gpkg.zip")
 
 
 def test_crown_dependencies():
@@ -19,7 +17,9 @@ def test_crown_dependencies():
     assert iom.source_url == "https://download.geofabrik.de/europe/isle-of-man-latest-free.gpkg.zip"
 
     ci = get_region("guernsey-jersey")
-    assert ci.source_url == "https://download.geofabrik.de/europe/guernsey-jersey-latest-free.gpkg.zip"
+    assert (
+        ci.source_url == "https://download.geofabrik.de/europe/guernsey-jersey-latest-free.gpkg.zip"
+    )
 
 
 def test_all_regions_are_https():
