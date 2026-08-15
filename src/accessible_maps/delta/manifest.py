@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from .checksums import sha256_file, verify_file_checksum
 from .models import DeltaManifest, TableDelta, TableManifestEntry
-from .signing import load_private_key, sign_manifest, verify_manifest
+from .signing import sign_manifest, verify_manifest
 
 
 def build_manifest(
