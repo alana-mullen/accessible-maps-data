@@ -4,7 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Accessible Maps UK Geospatial Accessibility Dataset Distribution & Delta Catalog">
+    <meta property="og:title" content="Accessible Maps Data Catalog">
+    <meta property="og:description" content="Cryptographic geospatial accessibility dataset distribution (GeoPackage ZIP & Zstandard) with binary deltas.">
+    <meta property="og:type" content="website">
     <title>Accessible Maps Data Catalog</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2338bdf8'%3E%3Cpath d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="style.css">
     <script src="app.js" defer></script>
 </head>
@@ -35,6 +39,10 @@
                     <div class="stat-value" id="stat-total-regions">&mdash;</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-label">Total Size</div>
+                    <div class="stat-value" id="stat-total-size">&mdash;</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-label">Catalog Version</div>
                     <div class="stat-value" id="stat-catalog-version">&mdash;</div>
                 </div>
@@ -52,14 +60,42 @@
         </header>
 
         <main>
+            <div class="filter-pills-row" id="filter-pills">
+                <button type="button" class="pill-btn active" data-category="all">
+                    All <span class="pill-count">0</span>
+                </button>
+                <button type="button" class="pill-btn" data-category="england">
+                    England <span class="pill-count">0</span>
+                </button>
+                <button type="button" class="pill-btn" data-category="scotland">
+                    Scotland <span class="pill-count">0</span>
+                </button>
+                <button type="button" class="pill-btn" data-category="wales">
+                    Wales <span class="pill-count">0</span>
+                </button>
+                <button type="button" class="pill-btn" data-category="northern-ireland">
+                    Northern Ireland <span class="pill-count">0</span>
+                </button>
+                <button type="button" class="pill-btn" data-category="islands">
+                    Islands <span class="pill-count">0</span>
+                </button>
+            </div>
+
             <div class="controls-row">
-                <input
-                    type="search"
-                    id="search"
-                    class="search-input"
-                    placeholder="Search regions (e.g. London, Manchester, Scotland, Wales)..."
-                    aria-label="Search regions"
-                >
+                <div class="search-wrapper">
+                    <input
+                        type="search"
+                        id="search"
+                        class="search-input"
+                        placeholder="Search regions (e.g. London, Manchester, Scotland, Wales)..."
+                        aria-label="Search regions"
+                    >
+                    <kbd class="search-kbd">/</kbd>
+                    <button type="button" id="search-clear" class="search-clear" aria-label="Clear search">&times;</button>
+                </div>
+
+                <div id="results-count" class="results-count"></div>
+
                 <select id="sort-select" class="sort-select" aria-label="Sort datasets by">
                     <option value="name-asc">Sort: Region Name (A-Z)</option>
                     <option value="name-desc">Sort: Region Name (Z-A)</option>
@@ -82,16 +118,30 @@
                             <th scope="col" class="sortable" data-sort="name">Region &#x21C5;</th>
                             <th scope="col" class="sortable" data-sort="version">Version &#x21C5;</th>
                             <th scope="col" class="sortable" data-sort="updated">Updated &#x21C5;</th>
+                            <th scope="col">Features</th>
                             <th scope="col">Downloads</th>
                             <th scope="col">SHA-256</th>
                             <th scope="col">Available Deltas</th>
                         </tr>
                     </thead>
                     <tbody id="table-body">
-                        <!-- Populated dynamically by app.js -->
+                        <!-- Rendered by app.js -->
                     </tbody>
                 </table>
             </div>
+
+            <details class="verification-guide">
+                <summary>How to verify cryptographic package signatures &amp; checksums</summary>
+                <div class="verification-content">
+                    <p>All distributed dataset archives include cryptographic SHA-256 checksums and optional Ed25519 digital signatures to guarantee data authenticity and integrity.</p>
+                    <p>To verify the SHA-256 checksum on Linux / macOS:</p>
+                    <pre class="code-block"><code># Verify dataset archive integrity
+sha256sum -c checksums.txt</code></pre>
+                    <p>To decompress high-performance Zstandard (<code>.zst</code>) datasets:</p>
+                    <pre class="code-block"><code># Unpack .gpkg.zst into standard .gpkg
+zstd -d &lt;region&gt;-&lt;version&gt;.gpkg.zst</code></pre>
+                </div>
+            </details>
         </main>
 
         <footer>

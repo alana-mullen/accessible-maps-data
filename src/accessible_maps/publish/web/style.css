@@ -12,10 +12,37 @@
     --success-color: #34d399;
     --zst-color: #818cf8;
     --zst-hover: #6366f1;
+    --pill-bg: #1e293b;
+    --pill-border: #334155;
+    --pill-active-bg: #38bdf8;
+    --pill-active-text: #0f172a;
+    --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --bg-color: #f8fafc;
+        --card-bg: #ffffff;
+        --card-hover: #f1f5f9;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --accent-hover: #0369a1;
+        --accent-dim: rgba(2, 132, 199, 0.1);
+        --border-color: #e2e8f0;
+        --badge-bg: #e2e8f0;
+        --success-color: #059669;
+        --zst-color: #6366f1;
+        --zst-hover: #4f46e5;
+        --pill-bg: #ffffff;
+        --pill-border: #cbd5e1;
+        --pill-active-bg: #0284c7;
+        --pill-active-text: #ffffff;
+    }
 }
 
 * {
@@ -34,7 +61,7 @@ body {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
 }
 
@@ -79,6 +106,7 @@ h1 {
     text-decoration: none;
     transition: all 0.15s ease-in-out;
     cursor: pointer;
+    border: none;
 }
 
 .btn:active {
@@ -87,7 +115,7 @@ h1 {
 
 .btn-primary {
     background-color: var(--accent);
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .btn-primary:hover {
@@ -122,7 +150,7 @@ h1 {
 
 .meta-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
     margin: 1.5rem 0;
 }
@@ -132,11 +160,12 @@ h1 {
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     padding: 1rem 1.25rem;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .stat-card:hover {
     border-color: var(--accent);
+    transform: translateY(-2px);
 }
 
 .stat-label {
@@ -154,7 +183,7 @@ h1 {
 }
 
 .stat-value-sub {
-    font-size: 1.05rem;
+    font-size: 1rem;
     padding-top: 0.35rem;
 }
 
@@ -167,18 +196,69 @@ h1 {
     text-decoration: underline;
 }
 
+/* ==========================================================================
+   Filter Pills & Controls Row
+   ========================================================================== */
+
+.filter-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1.5rem 0 1rem 0;
+}
+
+.pill-btn {
+    background-color: var(--pill-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--pill-border);
+    padding: 0.4rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pill-btn:hover {
+    color: var(--text-main);
+    border-color: var(--accent);
+}
+
+.pill-btn.active {
+    background-color: var(--pill-active-bg);
+    color: var(--pill-active-text);
+    border-color: var(--pill-active-bg);
+}
+
+.pill-count {
+    font-size: 0.75rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 9999px;
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
 .controls-row {
-    margin: 1.5rem 0;
+    margin: 1rem 0 1.5rem 0;
     display: flex;
     gap: 1rem;
     align-items: center;
     flex-wrap: wrap;
 }
 
-.search-input {
+.search-wrapper {
+    position: relative;
     flex: 1;
-    min-width: 260px;
-    padding: 0.75rem 1rem;
+    min-width: 280px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.75rem 3rem 0.75rem 1rem;
     min-height: 48px;
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
@@ -186,11 +266,50 @@ h1 {
     color: var(--text-main);
     font-size: 1rem;
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .search-input:focus {
     border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+.search-kbd {
+    position: absolute;
+    right: 2.75rem;
+    padding: 0.15rem 0.45rem;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    background-color: var(--badge-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    pointer-events: none;
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    display: block;
+}
+
+.search-clear:hover {
+    color: var(--text-main);
+}
+
+.search-input:placeholder-shown ~ .search-clear {
+    display: none;
+}
+
+.search-input:not(:placeholder-shown) ~ .search-kbd {
+    display: none;
 }
 
 .sort-select {
@@ -209,19 +328,24 @@ h1 {
     border-color: var(--accent);
 }
 
+.results-count {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 /* ==========================================================================
-   Table & Automatic State Visibility using :has() and :empty
+   Table & State Visibility
    ========================================================================== */
 
 .table-responsive {
     background-color: var(--card-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
     overflow: hidden;
 }
 
-/* Automatically hide table container when tbody has no rows */
 .table-responsive:has(tbody:empty) {
     display: none;
 }
@@ -234,7 +358,7 @@ table {
 }
 
 th {
-    background-color: #162032;
+    background-color: rgba(0, 0, 0, 0.15);
     color: var(--text-muted);
     font-weight: 600;
     font-size: 0.8125rem;
@@ -265,7 +389,7 @@ tr:last-child td {
 }
 
 tr:hover td {
-    background-color: rgba(56, 189, 248, 0.03);
+    background-color: var(--accent-dim);
 }
 
 .region-name {
@@ -289,9 +413,21 @@ tr:hover td {
     border: 1px solid rgba(56, 189, 248, 0.3);
 }
 
-/* ==========================================================================
-   CSS Native Text Truncation with Ellipsis
-   ========================================================================== */
+.feature-stats-pill {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.stats-chip {
+    background-color: var(--badge-bg);
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
 .checksum-badge {
     font-family: var(--font-mono);
     font-size: 0.75rem;
@@ -345,7 +481,7 @@ tr:hover td {
 
 .btn-zip {
     background-color: var(--accent);
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .btn-zip:hover {
@@ -397,8 +533,44 @@ tr:hover td {
 }
 
 /* ==========================================================================
-   CSS Native Status State Visibility using :empty
+   Verification Details Section
    ========================================================================== */
+
+.verification-guide {
+    margin: 2rem 0;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+}
+
+.verification-guide summary {
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9375rem;
+}
+
+.verification-content {
+    margin-top: 1rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.7;
+}
+
+.code-block {
+    background-color: #0b1120;
+    color: #38bdf8;
+    font-family: var(--font-mono);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    margin: 0.5rem 0 1rem 0;
+    overflow-x: auto;
+    font-size: 0.8125rem;
+    border: 1px solid var(--border-color);
+}
+
 .status-message {
     padding: 3rem 1rem;
     text-align: center;
@@ -454,10 +626,6 @@ footer a {
 
 footer a:hover {
     text-decoration: underline;
-}
-
-.hidden {
-    display: none !important;
 }
 
 /* ==========================================================================
