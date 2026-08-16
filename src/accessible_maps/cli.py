@@ -22,6 +22,7 @@ from .publish import (
     package_release,
     publish_github_release,
     validate_release_package,
+    write_catalog_html,
 )
 from .schemas import export_json_schemas
 from .version import __version__
@@ -359,6 +360,12 @@ def _build_catalog(args: argparse.Namespace) -> int:
     args.output.write_text(catalog.to_json(indent=2), encoding="utf-8")
     console.print(
         f"[bold green]Built catalog with {len(catalog.regions)} regions at[/bold green] [cyan]{args.output}[/cyan]"
+    )
+
+    html_path = args.output.parent / "index.html"
+    write_catalog_html(catalog, html_path, repo=args.repo)
+    console.print(
+        f"[bold green]Generated catalog HTML landing page at[/bold green] [cyan]{html_path}[/cyan]"
     )
 
     if args.export_schemas_dir:
