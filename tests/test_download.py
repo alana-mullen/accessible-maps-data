@@ -78,3 +78,27 @@ def test_download_with_retries_304_reuses_archive(tmp_path: Path, monkeypatch):
     # Should exit cleanly without error when 304 received
     _download_with_retries("https://example.com/test.zip", archive, attempts=1, timeout=(5.0, 5.0))
     assert archive.is_file()
+
+
+def test_download_with_retries_html_fails(tmp_path: Path, monkeypatch):
+    archive = tmp_path / "test.gpkg.zip"
+
+    class MockHtmlResponse:
+        status_code = 200
+        headers = {"Content-Type": "text/html; charset=utf-8"}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def raise_for_status(self):
+            pass
+
+    monkeypatch.setattr("requests.get", lambda url, **kwargs: MockHtmlResponse())
+
+    with pytest.raises(DownloadError):
+        _download_with_retries(
+            "https://example.com/bad.zip", archive, attempts=1, timeout=(5.0, 5.0)
+        )

@@ -4,12 +4,28 @@ from accessible_maps.config import REGIONS, get_region
 def test_regions_are_unique():
     names = [region.name for region in REGIONS]
     assert len(names) == len(set(names))
-    assert len(REGIONS) == 14
+    assert len(REGIONS) == 52
+    assert "england" not in names
 
 
-def test_north_west_url():
-    region = get_region("north-west")
-    assert region.source_url.endswith("/england/north-west-latest-free.gpkg.zip")
+def test_uk_nations_urls():
+    scotland = get_region("scotland")
+    assert (
+        scotland.source_url
+        == "https://download.geofabrik.de/europe/united-kingdom/scotland-latest-free.gpkg.zip"
+    )
+
+    wales = get_region("wales")
+    assert (
+        wales.source_url
+        == "https://download.geofabrik.de/europe/united-kingdom/wales-latest-free.gpkg.zip"
+    )
+
+    london = get_region("greater-london")
+    assert (
+        london.source_url
+        == "https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest-free.gpkg.zip"
+    )
 
 
 def test_crown_dependencies():

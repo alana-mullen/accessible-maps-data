@@ -122,6 +122,12 @@ def _download_with_retries(
 
                 response.raise_for_status()
 
+                content_type = response.headers.get("Content-Type", "")
+                if content_type.startswith("text/html"):
+                    raise DownloadError(
+                        f"Server returned HTML webpage instead of ZIP file (URL redirected or invalid): {url}"
+                    )
+
                 etag = response.headers.get("ETag")
                 total_size = int(response.headers.get("Content-Length", 0))
 
