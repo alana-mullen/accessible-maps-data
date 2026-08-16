@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Accessible Maps UK Geospatial Accessibility Dataset Distribution & Delta Catalog">
+    <title>Accessible Maps Data Catalog</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-title-row">
+                <div>
+                    <h1>Accessible Maps Data Catalog</h1>
+                    <p class="subtitle">
+                        Geospatial accessibility dataset distribution &amp; cryptographic delta packages derived from
+                        <strong>&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></strong> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)
+                    </p>
+                </div>
+                <div class="header-links">
+                    <a class="btn btn-primary" href="catalog.json" target="_blank" rel="noopener">
+                        View catalog.json
+                    </a>
+                    <a class="btn btn-secondary" id="repo-link" href="https://github.com/alana-mullen/accessible-maps-data" target="_blank" rel="noopener">
+                        GitHub Repository
+                    </a>
+                </div>
+            </div>
+
+            <div class="meta-stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Regions</div>
+                    <div class="stat-value" id="stat-total-regions">&mdash;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Catalog Version</div>
+                    <div class="stat-value" id="stat-catalog-version">&mdash;</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Data Attribution</div>
+                    <div class="stat-value stat-value-sub">
+                        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="stat-link">&copy; OpenStreetMap (ODbL)</a>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Last Updated (UTC)</div>
+                    <div class="stat-value stat-value-sub" id="stat-updated-at">&mdash;</div>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <div class="controls-row">
+                <input
+                    type="search"
+                    id="search"
+                    class="search-input"
+                    placeholder="Search regions (e.g. London, Manchester, Scotland, Wales)..."
+                    aria-label="Search regions"
+                >
+                <select id="sort-select" class="sort-select" aria-label="Sort datasets by">
+                    <option value="name-asc">Sort: Region Name (A-Z)</option>
+                    <option value="name-desc">Sort: Region Name (Z-A)</option>
+                    <option value="version-desc">Sort: Version (Newest First)</option>
+                    <option value="updated-desc">Sort: Updated Date (Recent First)</option>
+                    <option value="size-desc">Sort: Size (Largest First)</option>
+                    <option value="size-asc">Sort: Size (Smallest First)</option>
+                </select>
+            </div>
+
+            <div id="status-container" class="status-message">
+                <div class="spinner" role="status" aria-label="Loading catalog"></div>
+                <p>Loading Accessible Maps dataset catalog...</p>
+            </div>
+
+            <div id="table-container" class="table-responsive">
+                <table id="regions-table">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="sortable" data-sort="name">Region &#x21C5;</th>
+                            <th scope="col" class="sortable" data-sort="version">Version &#x21C5;</th>
+                            <th scope="col" class="sortable" data-sort="updated">Updated &#x21C5;</th>
+                            <th scope="col">Downloads</th>
+                            <th scope="col">SHA-256</th>
+                            <th scope="col">Available Deltas</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Populated dynamically by app.js -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+
+        <footer>
+            <p>Data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, licensed under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License (ODbL)</a>. Regional extracts sourced via <a href="https://download.geofabrik.de/" target="_blank" rel="noopener">Geofabrik</a>.</p>
+            <p class="footer-sub">Automated pipeline built with <a href="https://github.com/alana-mullen/accessible-maps-data" target="_blank" rel="noopener">alana-mullen/accessible-maps-data</a>.</p>
+        </footer>
+    </div>
+</body>
+</html>

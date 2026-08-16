@@ -1,0 +1,533 @@
+:root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --card-hover: #243248;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --accent-dim: rgba(56, 189, 248, 0.15);
+    --border-color: #334155;
+    --badge-bg: #334155;
+    --success-color: #34d399;
+    --zst-color: #818cf8;
+    --zst-hover: #6366f1;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1.5rem;
+}
+
+.header-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-links {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease-in-out;
+    cursor: pointer;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background-color: var(--accent);
+    color: #0f172a;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+    background-color: var(--card-bg);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--card-hover);
+    border-color: var(--accent);
+}
+
+.subtitle {
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-size: 1rem;
+}
+
+.subtitle a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.subtitle a:hover {
+    text-decoration: underline;
+}
+
+.meta-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.stat-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 1rem 1.25rem;
+    transition: border-color 0.15s ease;
+}
+
+.stat-card:hover {
+    border-color: var(--accent);
+}
+
+.stat-label {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-top: 0.25rem;
+}
+
+.stat-value-sub {
+    font-size: 1.05rem;
+    padding-top: 0.35rem;
+}
+
+.stat-link {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.stat-link:hover {
+    text-decoration: underline;
+}
+
+.controls-row {
+    margin: 1.5rem 0;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 260px;
+    padding: 0.75rem 1rem;
+    min-height: 48px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 1rem;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+
+.search-input:focus {
+    border-color: var(--accent);
+}
+
+.sort-select {
+    padding: 0.75rem 1rem;
+    min-height: 48px;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 0.9375rem;
+    outline: none;
+    cursor: pointer;
+}
+
+.sort-select:focus {
+    border-color: var(--accent);
+}
+
+/* ==========================================================================
+   Table & Automatic State Visibility using :has() and :empty
+   ========================================================================== */
+
+.table-responsive {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+}
+
+/* Automatically hide table container when tbody has no rows */
+.table-responsive:has(tbody:empty) {
+    display: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.9375rem;
+}
+
+th {
+    background-color: #162032;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    user-select: none;
+}
+
+th.sortable {
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+th.sortable:hover {
+    color: var(--accent);
+}
+
+td {
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+tr:hover td {
+    background-color: rgba(56, 189, 248, 0.03);
+}
+
+.region-name {
+    font-weight: 600;
+    color: var(--text-main);
+    text-transform: capitalize;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+}
+
+.badge-version {
+    background-color: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+/* ==========================================================================
+   CSS Native Text Truncation with Ellipsis
+   ========================================================================== */
+.checksum-badge {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background-color: var(--badge-bg);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-block;
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    transition: color 0.15s ease, transform 0.1s ease;
+}
+
+.checksum-badge:hover {
+    color: var(--accent);
+}
+
+.checksum-badge:active {
+    transform: scale(0.95);
+    color: var(--success-color);
+}
+
+.download-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.btn-download {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.75rem;
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.btn-download:active {
+    transform: scale(0.97);
+}
+
+.btn-zip {
+    background-color: var(--accent);
+    color: #0f172a;
+}
+
+.btn-zip:hover {
+    background-color: var(--accent-hover);
+}
+
+.btn-zst {
+    background-color: var(--zst-color);
+    color: #ffffff;
+}
+
+.btn-zst:hover {
+    background-color: var(--zst-hover);
+}
+
+.deltas-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.delta-badge {
+    display: inline-flex;
+    align-items: center;
+    background-color: rgba(52, 211, 153, 0.15);
+    color: var(--success-color);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    padding: 0.25rem 0.5rem;
+    min-height: 36px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: var(--font-mono);
+    text-decoration: none;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.delta-badge:hover {
+    background-color: rgba(52, 211, 153, 0.3);
+}
+
+.delta-badge:active {
+    transform: scale(0.97);
+}
+
+.text-muted {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+/* ==========================================================================
+   CSS Native Status State Visibility using :empty
+   ========================================================================== */
+.status-message {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.status-message:empty {
+    display: none;
+}
+
+.error-title {
+    color: #f87171;
+    font-weight: 600;
+}
+
+.error-detail {
+    margin-top: 0.5rem;
+}
+
+.spinner {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(56, 189, 248, 0.2);
+    border-radius: 50%;
+    border-top-color: var(--accent);
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 0.75rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+footer {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.footer-sub {
+    margin-top: 0.4rem;
+}
+
+footer a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==========================================================================
+   Responsive Dual-Mode Table / Card Transformation for Small Screens
+   ========================================================================== */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem 0.75rem;
+    }
+
+    .table-responsive {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+
+    table, thead, tbody, th, td, tr {
+        display: block;
+    }
+
+    thead tr {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        display: none;
+    }
+
+    tr {
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        margin-bottom: 1.25rem;
+        padding: 1rem 1.25rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+    }
+
+    td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    td:last-child {
+        border-bottom: none;
+    }
+
+    td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+
+    .checksum-badge {
+        max-width: 18ch;
+    }
+
+    .download-group {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .btn-download {
+        flex: 1;
+        min-height: 48px;
+    }
+}

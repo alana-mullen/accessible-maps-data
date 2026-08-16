@@ -7,344 +7,14 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .metadata import DatasetCatalog
 
-CATALOG_CSS = """\
-:root {
-    --bg-color: #0f172a;
-    --card-bg: #1e293b;
-    --text-main: #f8fafc;
-    --text-muted: #94a3b8;
-    --accent: #38bdf8;
-    --accent-hover: #0ea5e9;
-    --accent-dim: rgba(56, 189, 248, 0.15);
-    --border-color: #334155;
-    --badge-bg: #334155;
-    --success-color: #34d399;
-    --zst-color: #818cf8;
-    --zst-hover: #6366f1;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
+WEB_ASSETS_DIR = Path(__file__).parent / "web"
 
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-}
-
-body {
-    background-color: var(--bg-color);
-    color: var(--text-main);
-    font-family: var(--font-sans);
-    line-height: 1.6;
-    padding: 2rem 1rem;
-    min-height: 100vh;
-}
-
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-header {
-    margin-bottom: 2rem;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1.5rem;
-}
-
-.header-title-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-h1 {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--text-main);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.header-links {
-    display: flex;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s ease-in-out;
-    cursor: pointer;
-}
-
-.btn-primary {
-    background-color: var(--accent);
-    color: #0f172a;
-}
-
-.btn-primary:hover {
-    background-color: var(--accent-hover);
-}
-
-.btn-secondary {
-    background-color: var(--card-bg);
-    color: var(--text-main);
-    border: 1px solid var(--border-color);
-}
-
-.btn-secondary:hover {
-    background-color: #273549;
-    border-color: var(--accent);
-}
-
-.subtitle {
-    color: var(--text-muted);
-    margin-top: 0.5rem;
-    font-size: 1rem;
-}
-
-.meta-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1rem;
-    margin: 1.5rem 0;
-}
-
-.stat-card {
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.25rem;
-}
-
-.stat-label {
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
-
-.stat-value {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--accent);
-    margin-top: 0.25rem;
-}
-
-.stat-value-sub {
-    font-size: 1.05rem;
-    padding-top: 0.35rem;
-}
-
-.stat-link {
-    color: var(--accent);
-    text-decoration: none;
-}
-
-.stat-link:hover {
-    text-decoration: underline;
-}
-
-.search-bar-row {
-    margin: 1.5rem 0;
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-}
-
-.search-input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    color: var(--text-main);
-    font-size: 1rem;
-    outline: none;
-    transition: border-color 0.15s ease;
-}
-
-.search-input:focus {
-    border-color: var(--accent);
-}
-
-.table-responsive {
-    overflow-x: auto;
-    background-color: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    text-align: left;
-    font-size: 0.9375rem;
-}
-
-th {
-    background-color: #162032;
-    color: var(--text-muted);
-    font-weight: 600;
-    font-size: 0.8125rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-td {
-    padding: 0.875rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
-}
-
-tr:last-child td {
-    border-bottom: none;
-}
-
-tr:hover td {
-    background-color: rgba(56, 189, 248, 0.03);
-}
-
-.region-name {
-    font-weight: 600;
-    color: var(--text-main);
-    text-transform: capitalize;
-}
-
-.badge {
-    display: inline-block;
-    padding: 0.25rem 0.5rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    font-family: var(--font-mono);
-}
-
-.badge-version {
-    background-color: var(--accent-dim);
-    color: var(--accent);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-}
-
-.checksum-badge {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    background-color: var(--badge-bg);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    color: var(--text-muted);
-}
-
-.download-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    align-items: center;
-}
-
-.btn-download {
-    display: inline-block;
-    padding: 0.35rem 0.65rem;
-    border-radius: var(--radius-md);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.btn-zip {
-    background-color: var(--accent);
-    color: #0f172a;
-}
-
-.btn-zip:hover {
-    background-color: var(--accent-hover);
-}
-
-.btn-zst {
-    background-color: var(--zst-color);
-    color: #ffffff;
-}
-
-.btn-zst:hover {
-    background-color: var(--zst-hover);
-}
-
-.deltas-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-}
-
-.delta-badge {
-    display: inline-block;
-    background-color: rgba(52, 211, 153, 0.15);
-    color: var(--success-color);
-    border: 1px solid rgba(52, 211, 153, 0.3);
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-family: var(--font-mono);
-    text-decoration: none;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-}
-
-.delta-badge:hover {
-    background-color: rgba(52, 211, 153, 0.3);
-}
-
-.text-muted {
-    color: var(--text-muted);
-    font-size: 0.8125rem;
-}
-
-footer {
-    margin-top: 3rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-    text-align: center;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-}
-
-.footer-sub {
-    margin-top: 0.4rem;
-}
-
-footer a {
-    color: var(--accent);
-    text-decoration: none;
-}
-
-footer a:hover {
-    text-decoration: underline;
-}
-
-.hidden {
-    display: none !important;
-}
-"""
+CATALOG_CSS = (WEB_ASSETS_DIR / "style.css").read_text(encoding="utf-8")
+CATALOG_JS = (WEB_ASSETS_DIR / "app.js").read_text(encoding="utf-8")
 
 
 def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> str:
-    """Generate accessible, standalone, responsive HTML landing page for the catalog."""
+    """Generate accessible, responsive HTML landing page for the catalog."""
     repo_name = html.escape(repo or "alana-mullen/accessible-maps-data")
     updated_at = html.escape(catalog.updated_at or "Unknown")
     total_regions = len(catalog.regions)
@@ -388,7 +58,6 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
         )
 
         raw_sha256 = entry.full_dataset_sha256 or entry.zst_dataset_sha256 or ""
-        sha256_short = html.escape(raw_sha256[:12] + "..." if raw_sha256 else "N/A")
         full_sha256 = html.escape(raw_sha256)
 
         deltas_html = ""
@@ -410,18 +79,18 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
         region_rows.append(
             f"""
         <tr data-region="{escaped_name}">
-            <td class="col-region">
+            <td data-label="Region">
                 <span class="region-name">{escaped_name}</span>
             </td>
-            <td class="col-version">
+            <td data-label="Version">
                 <span class="badge badge-version">v{escaped_version}</span>
             </td>
-            <td class="col-updated">{escaped_updated[:10]}</td>
-            <td class="col-downloads">{downloads_html}</td>
-            <td class="col-checksum">
-                <code class="checksum-badge" title="{full_sha256}">{sha256_short}</code>
+            <td data-label="Updated">{escaped_updated[:10]}</td>
+            <td data-label="Downloads">{downloads_html}</td>
+            <td data-label="SHA-256">
+                <code class="checksum-badge" title="{full_sha256}">{full_sha256 if full_sha256 else "N/A"}</code>
             </td>
-            <td class="col-deltas">{deltas_html}</td>
+            <td data-label="Deltas">{deltas_html}</td>
         </tr>"""
         )
 
@@ -435,6 +104,7 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
     <meta name="description" content="Accessible Maps UK Geospatial Accessibility Dataset Distribution & Delta Catalog">
     <title>Accessible Maps Data Catalog</title>
     <link rel="stylesheet" href="style.css">
+    <script src="app.js" defer></script>
 </head>
 <body>
     <div class="container">
@@ -451,7 +121,7 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
                     <a class="btn btn-primary" href="catalog.json" target="_blank" rel="noopener">
                         View catalog.json
                     </a>
-                    <a class="btn btn-secondary" href="https://github.com/{repo_name}" target="_blank" rel="noopener">
+                    <a class="btn btn-secondary" id="repo-link" href="https://github.com/{repo_name}" target="_blank" rel="noopener">
                         GitHub Repository
                     </a>
                 </div>
@@ -460,11 +130,11 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
             <div class="meta-stats">
                 <div class="stat-card">
                     <div class="stat-label">Total Regions</div>
-                    <div class="stat-value">{total_regions}</div>
+                    <div class="stat-value" id="stat-total-regions">{total_regions}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Catalog Version</div>
-                    <div class="stat-value">v{catalog.catalog_version}</div>
+                    <div class="stat-value" id="stat-catalog-version">v{catalog.catalog_version}</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Data Attribution</div>
@@ -474,35 +144,45 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Last Updated (UTC)</div>
-                    <div class="stat-value stat-value-sub">{updated_at[:19]}</div>
+                    <div class="stat-value stat-value-sub" id="stat-updated-at">{updated_at[:19]}</div>
                 </div>
             </div>
         </header>
 
         <main>
-            <div class="search-bar-row">
+            <div class="controls-row">
                 <input
                     type="search"
                     id="search"
                     class="search-input"
-                    placeholder="Filter regions (e.g. London, Manchester, Scotland, Wales)..."
-                    aria-label="Filter regions"
+                    placeholder="Search regions (e.g. London, Manchester, Scotland, Wales)..."
+                    aria-label="Search regions"
                 >
+                <select id="sort-select" class="sort-select" aria-label="Sort datasets by">
+                    <option value="name-asc">Sort: Region Name (A-Z)</option>
+                    <option value="name-desc">Sort: Region Name (Z-A)</option>
+                    <option value="version-desc">Sort: Version (Newest First)</option>
+                    <option value="updated-desc">Sort: Updated Date (Recent First)</option>
+                    <option value="size-desc">Sort: Size (Largest First)</option>
+                    <option value="size-asc">Sort: Size (Smallest First)</option>
+                </select>
             </div>
 
-            <div class="table-responsive">
+            <div id="status-container" class="status-message"></div>
+
+            <div id="table-container" class="table-responsive">
                 <table id="regions-table">
                     <thead>
                         <tr>
-                            <th scope="col">Region</th>
-                            <th scope="col">Version</th>
-                            <th scope="col">Updated</th>
+                            <th scope="col" class="sortable" data-sort="name">Region &#x21C5;</th>
+                            <th scope="col" class="sortable" data-sort="version">Version &#x21C5;</th>
+                            <th scope="col" class="sortable" data-sort="updated">Updated &#x21C5;</th>
                             <th scope="col">Downloads</th>
                             <th scope="col">SHA-256</th>
                             <th scope="col">Available Deltas</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="table-body">
 {regions_table_body}
                     </tbody>
                 </table>
@@ -514,17 +194,6 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
             <p class="footer-sub">Automated pipeline built with <a href="https://github.com/{repo_name}" target="_blank" rel="noopener">{repo_name}</a>.</p>
         </footer>
     </div>
-
-    <script>
-        document.getElementById('search').addEventListener('input', function(e) {{
-            const query = e.target.value.toLowerCase().trim();
-            const rows = document.querySelectorAll('#regions-table tbody tr');
-            rows.forEach(row => {{
-                const region = row.getAttribute('data-region') || '';
-                row.classList.toggle('hidden', !region.toLowerCase().includes(query));
-            }});
-        }});
-    </script>
 </body>
 </html>
 """
@@ -534,17 +203,19 @@ def write_catalog_html(
     catalog: DatasetCatalog,
     output_path: Path,
     repo: str | None = None,
-) -> tuple[Path, Path]:
-    """Write generated catalog HTML landing page and external stylesheet to directory."""
+) -> tuple[Path, Path, Path]:
+    """Write generated catalog HTML landing page, external stylesheet, and client app JS to directory."""
     output_path = Path(output_path)
     output_dir = output_path.parent if output_path.suffix else output_path
     output_dir.mkdir(parents=True, exist_ok=True)
 
     html_file = output_dir / (output_path.name if output_path.suffix else "index.html")
     css_file = output_dir / "style.css"
+    js_file = output_dir / "app.js"
 
     html_content = generate_catalog_html(catalog, repo=repo)
     html_file.write_text(html_content, encoding="utf-8")
     css_file.write_text(CATALOG_CSS, encoding="utf-8")
+    js_file.write_text(CATALOG_JS, encoding="utf-8")
 
-    return html_file, css_file
+    return html_file, css_file, js_file
