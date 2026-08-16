@@ -15,9 +15,9 @@ Data pipeline for generating UK accessibility datasets, high-efficiency Zstandar
   - **Manifests**: Machine-readable `manifest.json` describing datasets, table statistics, versions, file hashes, and cryptographic signatures.
   - **Cryptographic Signing**: Asymmetric Ed25519 signing and verification with automated GitHub Actions secret injection and memory shredding.
 - **Publishing & Distribution**:
-  - **JSON Schema Export**: Automated generation of `manifest.schema.json` and `catalog.schema.json` to formally validate Kotlin client `kotlinx.serialization` models.
-  - **GitHub Pages Global CDN**: Automated deployment of `catalog.json` and schemas to GitHub Pages for rate-limit-free mobile client discovery.
-  - **GitHub Releases**: Automated release notes, checksums, and multi-format asset uploads.
+  - **JSON Schema Export**: Automated generation of `delta_manifest.schema.json`, `dataset_catalog.schema.json`, and `release_metadata.schema.json` to formally validate Kotlin client `kotlinx.serialization` models.
+  - **GitHub Pages Global CDN & Landing Page**: Responsive web landing page (`index.html` + `style.css`), live filtering, and `catalog.json` distribution for rate-limit-free mobile client discovery.
+  - **GitHub Releases**: Automated CalVer versioning (`YYYY.MM.DD.01`), release notes, checksums, and multi-format asset uploads.
 - **Rich CLI**: Beautiful terminal tables and progress bars with `rich`.
 
 ## Local setup
@@ -41,7 +41,7 @@ pytest
 accessible-maps-build list-regions
 
 # Download and inspect layers for a region with rich progress bar
-accessible-maps-build inspect north-west
+accessible-maps-build inspect greater-london
 ```
 
 ### 2. Generate Ed25519 signing keypair
@@ -56,12 +56,12 @@ Compute differences between two GeoPackage datasets, generate per-table deltas, 
 
 ```bash
 accessible-maps-build generate-delta \
-  --base data/north-west-2026.01.gpkg \
-  --target data/north-west-2026.02.gpkg \
-  --output-dir delta-north-west/ \
-  --dataset-name north-west \
-  --base-version 2026.01 \
-  --target-version 2026.02 \
+  --base data/greater-london-2026.08.15.01.gpkg \
+  --target data/greater-london-2026.08.16.01.gpkg \
+  --output-dir delta-london/ \
+  --dataset-name greater-london \
+  --base-version 2026.08.15.01 \
+  --target-version 2026.08.16.01 \
   --signing-key keys/delta_key.pem
 ```
 
@@ -71,7 +71,7 @@ Verify manifest cryptographic signature and checksum integrity of all delta file
 
 ```bash
 accessible-maps-build verify-delta \
-  --delta-dir delta-north-west/ \
+  --delta-dir delta-london/ \
   --public-key keys/delta_key.pub
 ```
 
@@ -81,9 +81,9 @@ Reconstruct the target dataset by applying per-table deltas to a base dataset:
 
 ```bash
 accessible-maps-build apply-delta \
-  --base data/north-west-2026.01.gpkg \
-  --delta-dir delta-north-west/ \
-  --output data/north-west-reconstructed.gpkg \
+  --base data/greater-london-2026.08.15.01.gpkg \
+  --delta-dir delta-london/ \
+  --output data/greater-london-reconstructed.gpkg \
   --public-key keys/delta_key.pub
 ```
 
@@ -93,12 +93,12 @@ Optimizes SQLite layout and packages full dataset (`.gpkg.zip` & `.gpkg.zst`), d
 
 ```bash
 accessible-maps-build package-release \
-  --target data/north-west.gpkg \
-  --output-dir releases/north-west/ \
-  --dataset-name north-west \
-  --version 2026.08.1 \
-  --base data/north-west-prev.gpkg \
-  --base-version 2026.07.1 \
+  --target data/greater-london.gpkg \
+  --output-dir releases/greater-london/ \
+  --dataset-name greater-london \
+  --version 2026.08.16.01 \
+  --base data/greater-london-prev.gpkg \
+  --base-version 2026.08.15.01 \
   --signing-key keys/delta_key.pem
 ```
 
@@ -110,16 +110,33 @@ Export formal JSON Schemas for Kotlin `kotlinx.serialization` validation:
 accessible-maps-build export-schemas --output-dir schemas/
 ```
 
-### 8. Build Global Dataset Catalog (`catalog.json`)
+### 8. Build & Regenerate Global Catalog (`catalog.json`, `index.html`, `style.css`)
 
-Build `catalog.json` with timestamps, file hashes, and direct download URLs:
+Build the catalog and responsive landing page using any of the following methods:
 
+#### Method A: From local release metadata files
 ```bash
 accessible-maps-build build-catalog \
   --metadata-files releases/*/metadata.json \
   --repo "alana-mullen/accessible-maps-data" \
-  --export-schemas-dir schemas/ \
-  --output catalog.json
+  --output catalog/catalog.json \
+  --export-schemas-dir catalog/schemas/
+```
+
+#### Method B: Re-render HTML/CSS from an existing `catalog.json` (instant local re-render)
+```bash
+accessible-maps-build build-catalog \
+  --from-catalog catalog/catalog.json \
+  --output catalog/catalog.json \
+  --export-schemas-dir catalog/schemas/
+```
+
+#### Method C: Fetch metadata directly from GitHub Releases via API (no dataset download)
+```bash
+accessible-maps-build build-catalog \
+  --fetch-from-github "alana-mullen/accessible-maps-data" \
+  --output catalog/catalog.json \
+  --export-schemas-dir catalog/schemas/
 ```
 
 ### 9. Publish to GitHub Releases
@@ -131,8 +148,15 @@ export GITHUB_TOKEN="ghp_your_token"
 export GITHUB_REPOSITORY="alana-mullen/accessible-maps-data"
 
 accessible-maps-build publish-release \
-  --release-dir releases/north-west/
+  --release-dir releases/greater-london/
 ```
+
+## GitHub Actions Workflows
+
+1. **`ci.yml`**: Runs code quality checks (`ruff check .`, `ruff format --check .`) and full pytest test suite across matrix targets.
+2. **`build.yml`**: Scheduled weekly Geofabrik download and layer inspection with runner caching.
+3. **`publish.yml`**: End-to-end pipeline to package, optimize, cryptographically sign, publish releases to GitHub, and deploy GitHub Pages. Automatically generates CalVer versions (`YYYY.MM.DD.01`) with same-day increment support.
+4. **`deploy-pages.yml`**: Lightweight 1-click workflow to fetch release metadata via GitHub API and re-deploy `index.html`, `style.css`, `catalog.json`, and schemas to GitHub Pages in ~15 seconds without re-downloading heavy datasets.
 
 ## Data policy
 

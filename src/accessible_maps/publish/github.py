@@ -148,3 +148,44 @@ def publish_github_release(
         "html_url": release_data.get("html_url"),
         "uploaded_assets": uploaded_assets,
     }
+
+
+def fetch_github_releases_metadata(
+    repo: str,
+    token: str | None = None,
+) -> list[ReleaseMetadata]:
+    """Fetch all ReleaseMetadata objects from metadata.json assets across published releases in a GitHub repo."""
+    token = token or os.getenv("GITHUB_TOKEN")
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "accessible-maps-publisher/1.0",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    api_url = f"https://api.github.com/repos/{repo}/releases?per_page=100"
+    resp = requests.get(api_url, headers=headers, timeout=30.0)
+    resp.raise_for_status()
+    releases = resp.json()
+
+    results: list[ReleaseMetadata] = []
+    for rel in releases:
+        assets = rel.get("assets", [])
+        meta_asset = next((a for a in assets if a.get("name") == "metadata.json"), None)
+        if meta_asset and meta_asset.get("browser_download_url"):
+            try:
+                meta_resp = requests.get(
+                    meta_asset["browser_download_url"], headers=headers, timeout=15.0
+                )
+                if meta_resp.status_code == 200:
+                    meta = ReleaseMetadata.from_json(meta_resp.text)
+                    results.append(meta)
+            except (requests.RequestException, ValueError, KeyError) as exc:
+                LOGGER.warning(
+                    "Could not fetch metadata for release %s: %s",
+                    rel.get("tag_name"),
+                    exc,
+                )
+
+    return results

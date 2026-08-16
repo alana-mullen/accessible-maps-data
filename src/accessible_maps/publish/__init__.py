@@ -1,7 +1,11 @@
 from __future__ import annotations
 
-from .github import GitHubPublishError, publish_github_release
-from .html_index import generate_catalog_html, write_catalog_html
+from .github import (
+    GitHubPublishError,
+    fetch_github_releases_metadata,
+    publish_github_release,
+)
+from .html_index import CATALOG_CSS, generate_catalog_html, write_catalog_html
 from .metadata import AssetInfo, DatasetCatalog, RegionCatalogEntry, ReleaseMetadata
 from .packaging import (
     compress_dir_to_zip,
@@ -18,6 +22,7 @@ from .validator import (
 )
 
 __all__ = [
+    "CATALOG_CSS",
     "AssetInfo",
     "DatasetCatalog",
     "GitHubPublishError",
@@ -26,6 +31,7 @@ __all__ = [
     "ValidationError",
     "compress_dir_to_zip",
     "compress_file_to_zip",
+    "fetch_github_releases_metadata",
     "generate_catalog_html",
     "generate_checksums_file",
     "package_release",

@@ -1,0 +1,59 @@
+name: Deploy Catalog to GitHub Pages
+# Lightweight workflow: fetches metadata from existing GitHub releases and regenerates/deploys
+# index.html, style.css, catalog.json, and schemas to GitHub Pages in ~15 seconds without downloading datasets.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+
+      - name: Fetch metadata and build catalog & landing page
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p catalog/schemas
+          accessible-maps-build build-catalog \
+            --fetch-from-github "${{ github.repository }}" \
+            --output catalog/catalog.json \
+            --export-schemas-dir catalog/schemas/
+
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: catalog
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

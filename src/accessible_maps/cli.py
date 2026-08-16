@@ -19,6 +19,7 @@ from .logging import configure_logging
 from .publish import (
     DatasetCatalog,
     ReleaseMetadata,
+    fetch_github_releases_metadata,
     package_release,
     publish_github_release,
     validate_release_package,
@@ -173,10 +174,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Build global catalog.json from release metadata files.",
     )
     cat_cmd.add_argument(
-        "--metadata-files", type=Path, nargs="+", required=True, help="List of metadata.json files"
+        "--metadata-files",
+        type=Path,
+        nargs="*",
+        default=None,
+        help="List of local metadata.json files",
     )
     cat_cmd.add_argument(
-        "--output", type=Path, default=Path("catalog.json"), help="Output catalog path"
+        "--from-catalog",
+        type=Path,
+        default=None,
+        help="Path to an existing catalog.json to regenerate HTML/CSS/Schemas without rebuilding",
+    )
+    cat_cmd.add_argument(
+        "--fetch-from-github",
+        default=None,
+        help="GitHub repo (e.g. owner/repo) to fetch published release metadata from directly via API",
+    )
+    cat_cmd.add_argument(
+        "--output", type=Path, default=Path("catalog/catalog.json"), help="Output catalog path"
     )
     cat_cmd.add_argument(
         "--repo", default=None, help="GitHub repo (e.g. owner/repo) to generate download URLs"
@@ -351,10 +367,36 @@ def _publish_release(args: argparse.Namespace) -> int:
 
 
 def _build_catalog(args: argparse.Namespace) -> int:
-    catalog = DatasetCatalog()
-    for meta_file in args.metadata_files:
-        meta = ReleaseMetadata.from_json(meta_file.read_text(encoding="utf-8"))
-        catalog.add_release(meta, repo=args.repo, base_download_url=args.base_url)
+    if args.from_catalog:
+        if not args.from_catalog.is_file():
+            console.print(f"[bold red]Catalog file not found:[/bold red] {args.from_catalog}")
+            return 1
+        catalog = DatasetCatalog.from_json(args.from_catalog.read_text(encoding="utf-8"))
+        console.print(
+            f"[bold blue]Loaded existing catalog with {len(catalog.regions)} regions from[/bold blue] [cyan]{args.from_catalog}[/cyan]"
+        )
+    elif args.fetch_from_github:
+        repo = args.fetch_from_github
+        console.print(
+            f"[bold blue]Fetching release metadata from GitHub repository:[/bold blue] [cyan]{repo}[/cyan]..."
+        )
+        metadata_list = fetch_github_releases_metadata(repo)
+        catalog = DatasetCatalog()
+        for meta in metadata_list:
+            catalog.add_release(meta, repo=repo, base_download_url=args.base_url)
+        console.print(
+            f"[bold green]Fetched and aggregated {len(metadata_list)} releases across {len(catalog.regions)} regions.[/bold green]"
+        )
+    elif args.metadata_files:
+        catalog = DatasetCatalog()
+        for meta_file in args.metadata_files:
+            meta = ReleaseMetadata.from_json(meta_file.read_text(encoding="utf-8"))
+            catalog.add_release(meta, repo=args.repo, base_download_url=args.base_url)
+    else:
+        console.print(
+            "[bold red]Must provide either --metadata-files, --from-catalog, or --fetch-from-github.[/bold red]"
+        )
+        return 1
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(catalog.to_json(indent=2), encoding="utf-8")
@@ -363,9 +405,11 @@ def _build_catalog(args: argparse.Namespace) -> int:
     )
 
     html_path = args.output.parent / "index.html"
-    write_catalog_html(catalog, html_path, repo=args.repo)
+    write_catalog_html(
+        catalog, html_path, repo=args.repo or getattr(args, "fetch_from_github", None)
+    )
     console.print(
-        f"[bold green]Generated catalog HTML landing page at[/bold green] [cyan]{html_path}[/cyan]"
+        f"[bold green]Generated catalog HTML landing page & style.css at[/bold green] [cyan]{html_path}[/cyan]"
     )
 
     if args.export_schemas_dir:

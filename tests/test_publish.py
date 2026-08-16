@@ -3,7 +3,11 @@ from pathlib import Path
 import pytest
 
 from accessible_maps.delta.checksums import sha256_file
-from accessible_maps.publish.github import GitHubPublishError, publish_github_release
+from accessible_maps.publish.github import (
+    GitHubPublishError,
+    fetch_github_releases_metadata,
+    publish_github_release,
+)
 from accessible_maps.publish.metadata import AssetInfo, ReleaseMetadata
 
 
@@ -61,3 +65,46 @@ def test_publish_github_release_missing_auth_raises(tmp_path: Path, monkeypatch)
 
     with pytest.raises(GitHubPublishError):
         publish_github_release(release_dir=rel_dir, dry_run=False)
+
+
+def test_fetch_github_releases_metadata(monkeypatch):
+    sample_meta = ReleaseMetadata(
+        release_tag="v2026.08.16.01-greater-london",
+        dataset_name="greater-london",
+        version="2026.08.16.01",
+    )
+
+    class MockReleasesResponse:
+        status_code = 200
+
+        def json(self):
+            return [
+                {
+                    "tag_name": "v2026.08.16.01-greater-london",
+                    "assets": [
+                        {
+                            "name": "metadata.json",
+                            "browser_download_url": "https://example.com/metadata.json",
+                        }
+                    ],
+                }
+            ]
+
+        def raise_for_status(self):
+            pass
+
+    class MockMetadataResponse:
+        status_code = 200
+        text = sample_meta.to_json()
+
+    def mock_get(url, **kwargs):
+        if "releases" in url:
+            return MockReleasesResponse()
+        return MockMetadataResponse()
+
+    monkeypatch.setattr("requests.get", mock_get)
+
+    results = fetch_github_releases_metadata("test-owner/test-repo", token="mock-token")
+    assert len(results) == 1
+    assert results[0].dataset_name == "greater-london"
+    assert results[0].version == "2026.08.16.01"
