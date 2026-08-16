@@ -8,8 +8,9 @@ on:
         required: true
         default: "all"
       version:
-        description: "Release version string (e.g. 2026.08.1)"
-        required: true
+        description: "Release version string (leave blank to auto-generate YYYY.MM.DD.01)"
+        required: false
+        default: ""
       draft:
         description: "Publish as draft release"
         type: boolean
@@ -43,8 +44,10 @@ jobs:
       version: ${{ steps.set-version.outputs.version }}
 
     steps:
-      - name: Check out repository
+      - name: Check out repository (with tags)
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -70,8 +73,29 @@ jobs:
       - name: Determine version
         id: set-version
         run: |
-          RAW_VERSION="${{ github.event.inputs.version || github.ref_name }}"
-          VERSION="${RAW_VERSION#v}"
+          INPUT_VERSION="${{ github.event.inputs.version }}"
+          if [ -n "$INPUT_VERSION" ]; then
+            VERSION="${INPUT_VERSION#v}"
+          elif [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            RAW_TAG="${{ github.ref_name }}"
+            VERSION="${RAW_TAG#v}"
+          else
+            TODAY=$(date -u +'%Y.%m.%d')
+            LATEST_TAG=$(git tag -l "v${TODAY}.*" | sort -V | tail -n 1)
+            if [ -n "$LATEST_TAG" ]; then
+              TAG_VER=$(echo "$LATEST_TAG" | sed -E 's/^v//; s/-.*$//')
+              REV=$(echo "$TAG_VER" | awk -F. '{print $4}')
+              if [ -n "$REV" ]; then
+                NEXT_REV=$(printf "%02d" $((10#$REV + 1)))
+                VERSION="${TODAY}.${NEXT_REV}"
+              else
+                VERSION="${TODAY}.02"
+              fi
+            else
+              VERSION="${TODAY}.01"
+            fi
+          fi
+          echo "Determined release version: $VERSION"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
   package-and-validate:
