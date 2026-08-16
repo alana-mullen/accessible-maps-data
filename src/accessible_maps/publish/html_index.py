@@ -19,6 +19,8 @@ CATALOG_CSS = """\
     --border-color: #334155;
     --badge-bg: #334155;
     --success-color: #34d399;
+    --zst-color: #818cf8;
+    --zst-hover: #6366f1;
     --radius-md: 8px;
     --radius-lg: 12px;
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -141,6 +143,20 @@ h1 {
     margin-top: 0.25rem;
 }
 
+.stat-value-sub {
+    font-size: 1.05rem;
+    padding-top: 0.35rem;
+}
+
+.stat-link {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.stat-link:hover {
+    text-decoration: underline;
+}
+
 .search-bar-row {
     margin: 1.5rem 0;
     display: flex;
@@ -234,21 +250,40 @@ tr:hover td {
     color: var(--text-muted);
 }
 
+.download-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+}
+
 .btn-download {
     display: inline-block;
-    background-color: var(--accent);
-    color: #0f172a;
-    padding: 0.35rem 0.75rem;
+    padding: 0.35rem 0.65rem;
     border-radius: var(--radius-md);
     font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
-    transition: background-color 0.15s ease;
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
-.btn-download:hover {
+.btn-zip {
+    background-color: var(--accent);
+    color: #0f172a;
+}
+
+.btn-zip:hover {
     background-color: var(--accent-hover);
+}
+
+.btn-zst {
+    background-color: var(--zst-color);
+    color: #ffffff;
+}
+
+.btn-zst:hover {
+    background-color: var(--zst-hover);
 }
 
 .deltas-container {
@@ -289,6 +324,10 @@ footer {
     font-size: 0.875rem;
 }
 
+.footer-sub {
+    margin-top: 0.4rem;
+}
+
 footer a {
     color: var(--accent);
     text-decoration: none;
@@ -296,6 +335,10 @@ footer a {
 
 footer a:hover {
     text-decoration: underline;
+}
+
+.hidden {
+    display: none !important;
 }
 """
 
@@ -311,10 +354,40 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
         escaped_name = html.escape(region_name)
         escaped_version = html.escape(entry.latest_version)
         escaped_updated = html.escape(entry.latest_updated_at or "")
-        download_url = html.escape(entry.full_dataset_download_url or "#")
-        size_bytes = entry.full_dataset_size_bytes
-        size_mb = f"{size_bytes / (1024 * 1024):.1f} MB" if size_bytes else "N/A"
-        raw_sha256 = entry.full_dataset_sha256 or ""
+
+        # Download buttons
+        download_buttons: list[str] = []
+        if entry.full_dataset_download_url:
+            zip_url = html.escape(entry.full_dataset_download_url)
+            zip_size = (
+                f"{entry.full_dataset_size_bytes / (1024 * 1024):.1f} MB"
+                if entry.full_dataset_size_bytes
+                else ""
+            )
+            download_buttons.append(
+                f'<a class="btn-download btn-zip" href="{zip_url}" title="Download ZIP GeoPackage dataset ({zip_size})" aria-label="Download ZIP dataset for {escaped_name}">'
+                f".gpkg.zip {f'({zip_size})' if zip_size else ''}</a>"
+            )
+
+        if entry.zst_dataset_download_url:
+            zst_url = html.escape(entry.zst_dataset_download_url)
+            zst_size = (
+                f"{entry.zst_dataset_size_bytes / (1024 * 1024):.1f} MB"
+                if entry.zst_dataset_size_bytes
+                else ""
+            )
+            download_buttons.append(
+                f'<a class="btn-download btn-zst" href="{zst_url}" title="Download Zstandard GeoPackage dataset ({zst_size})" aria-label="Download Zstandard dataset for {escaped_name}">'
+                f".gpkg.zst {f'({zst_size})' if zst_size else ''}</a>"
+            )
+
+        downloads_html = (
+            f'<div class="download-group">{" ".join(download_buttons)}</div>'
+            if download_buttons
+            else '<span class="text-muted">N/A</span>'
+        )
+
+        raw_sha256 = entry.full_dataset_sha256 or entry.zst_dataset_sha256 or ""
         sha256_short = html.escape(raw_sha256[:12] + "..." if raw_sha256 else "N/A")
         full_sha256 = html.escape(raw_sha256)
 
@@ -343,13 +416,8 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
             <td class="col-version">
                 <span class="badge badge-version">v{escaped_version}</span>
             </td>
-            <td class="col-size">{size_mb}</td>
             <td class="col-updated">{escaped_updated[:10]}</td>
-            <td class="col-download">
-                <a class="btn-download" href="{download_url}" aria-label="Download GeoPackage dataset for {escaped_name}">
-                    Download .gpkg
-                </a>
-            </td>
+            <td class="col-downloads">{downloads_html}</td>
             <td class="col-checksum">
                 <code class="checksum-badge" title="{full_sha256}">{sha256_short}</code>
             </td>
@@ -374,7 +442,10 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
             <div class="header-title-row">
                 <div>
                     <h1>Accessible Maps Data Catalog</h1>
-                    <p class="subtitle">Geospatial accessibility dataset distribution &amp; cryptographic delta packages</p>
+                    <p class="subtitle">
+                        Geospatial accessibility dataset distribution &amp; cryptographic delta packages derived from
+                        <strong>&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a></strong> (<a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>)
+                    </p>
                 </div>
                 <div class="header-links">
                     <a class="btn btn-primary" href="catalog.json" target="_blank" rel="noopener">
@@ -396,8 +467,14 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
                     <div class="stat-value">v{catalog.catalog_version}</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-label">Data Attribution</div>
+                    <div class="stat-value stat-value-sub">
+                        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" class="stat-link">&copy; OpenStreetMap (ODbL)</a>
+                    </div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-label">Last Updated (UTC)</div>
-                    <div class="stat-value" style="font-size: 1.1rem; padding-top: 0.3rem;">{updated_at[:19]}</div>
+                    <div class="stat-value stat-value-sub">{updated_at[:19]}</div>
                 </div>
             </div>
         </header>
@@ -419,9 +496,8 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
                         <tr>
                             <th scope="col">Region</th>
                             <th scope="col">Version</th>
-                            <th scope="col">Size</th>
                             <th scope="col">Updated</th>
-                            <th scope="col">Full Dataset</th>
+                            <th scope="col">Downloads</th>
                             <th scope="col">SHA-256</th>
                             <th scope="col">Available Deltas</th>
                         </tr>
@@ -434,7 +510,8 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
         </main>
 
         <footer>
-            <p>&copy; OpenStreetMap contributors, licensed under <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">ODbL</a>. Built automatically with <a href="https://github.com/{repo_name}" target="_blank" rel="noopener">{repo_name}</a>.</p>
+            <p>Data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>, licensed under the <a href="https://opendatacommons.org/licenses/odbl/" target="_blank" rel="noopener">Open Database License (ODbL)</a>. Regional extracts sourced via <a href="https://download.geofabrik.de/" target="_blank" rel="noopener">Geofabrik</a>.</p>
+            <p class="footer-sub">Automated pipeline built with <a href="https://github.com/{repo_name}" target="_blank" rel="noopener">{repo_name}</a>.</p>
         </footer>
     </div>
 
@@ -444,11 +521,7 @@ def generate_catalog_html(catalog: DatasetCatalog, repo: str | None = None) -> s
             const rows = document.querySelectorAll('#regions-table tbody tr');
             rows.forEach(row => {{
                 const region = row.getAttribute('data-region') || '';
-                if (region.toLowerCase().includes(query)) {{
-                    row.style.display = '';
-                }} else {{
-                    row.style.display = 'none';
-                }}
+                row.classList.toggle('hidden', !region.toLowerCase().includes(query));
             }});
         }});
     </script>

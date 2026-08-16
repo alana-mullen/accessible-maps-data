@@ -20,7 +20,13 @@ def test_generate_and_write_catalog_html(tmp_path: Path):
                 sha256="abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
                 size_bytes=10 * 1024 * 1024,
                 download_url="https://github.com/example/repo/releases/download/tag/file.zip",
-            )
+            ),
+            AssetInfo(
+                filename="greater-london.gpkg.zst",
+                sha256="123456abcdef7890123456abcdef7890123456abcdef7890123456abcdef7890",
+                size_bytes=6 * 1024 * 1024,
+                download_url="https://github.com/example/repo/releases/download/tag/file.zst",
+            ),
         ],
     )
     catalog.add_release(meta)
@@ -32,7 +38,10 @@ def test_generate_and_write_catalog_html(tmp_path: Path):
     assert "Accessible Maps Data Catalog" in html_content
     assert "greater-london" in html_content
     assert "v2026.08.16.01" in html_content
+    assert ".gpkg.zip" in html_content
+    assert ".gpkg.zst" in html_content
     assert "10.0 MB" in html_content
+    assert "6.0 MB" in html_content
 
     out_file = tmp_path / "index.html"
     html_res, css_res = write_catalog_html(catalog, out_file, repo="test-org/test-repo")

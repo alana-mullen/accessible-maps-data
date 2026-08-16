@@ -3,12 +3,13 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 
 @dataclass(slots=True)
 class AssetInfo:
-    """Information about a release asset file."""
+    """Descriptor for a release asset file with hash and size."""
 
     filename: str
     sha256: str
@@ -26,7 +27,7 @@ class AssetInfo:
 
 @dataclass(slots=True)
 class ReleaseMetadata:
-    """Structured metadata for a published dataset release."""
+    """Metadata describing a published dataset release, its assets, and deltas."""
 
     release_tag: str
     dataset_name: str
@@ -36,8 +37,6 @@ class ReleaseMetadata:
     assets: list[AssetInfo] = field(default_factory=list)
     table_stats: dict[str, int] = field(default_factory=dict)
     delta_stats: dict[str, int] | None = None
-    attribution: str = "© OpenStreetMap contributors, licensed under ODbL"
-    license: str = "ODbL-1.0"
     manifest_signature: str | None = None
     public_key: str | None = None
 
@@ -48,39 +47,30 @@ class ReleaseMetadata:
             "version": self.version,
             "base_version": self.base_version,
             "created_at": self.created_at,
+            "assets": [a.to_dict() for a in self.assets],
             "table_stats": self.table_stats,
             "delta_stats": self.delta_stats,
-            "attribution": self.attribution,
-            "license": self.license,
-            "signing": {
-                "manifest_signature": self.manifest_signature,
-                "public_key": self.public_key,
-            },
-            "assets": [a.to_dict() for a in self.assets],
+            "manifest_signature": self.manifest_signature,
+            "public_key": self.public_key,
         }
 
-    def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
+    def to_json(self, indent: int | None = 2) -> str:
+        return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ReleaseMetadata:
-        signing = data.get("signing", {})
         assets = [AssetInfo.from_dict(a) for a in data.get("assets", [])]
         return cls(
             release_tag=data["release_tag"],
             dataset_name=data["dataset_name"],
             version=data["version"],
             base_version=data.get("base_version"),
-            created_at=data.get("created_at", ""),
+            created_at=data.get("created_at", datetime.now(UTC).isoformat()),
             assets=assets,
             table_stats=dict(data.get("table_stats", {})),
             delta_stats=data.get("delta_stats"),
-            attribution=data.get(
-                "attribution", "© OpenStreetMap contributors, licensed under ODbL"
-            ),
-            license=data.get("license", "ODbL-1.0"),
-            manifest_signature=signing.get("manifest_signature"),
-            public_key=signing.get("public_key"),
+            manifest_signature=data.get("manifest_signature"),
+            public_key=data.get("public_key"),
         )
 
     @classmethod
@@ -88,91 +78,96 @@ class ReleaseMetadata:
         return cls.from_dict(json.loads(json_str))
 
     def generate_release_notes(self) -> str:
-        """Generate formatted Markdown release notes for GitHub Releases."""
+        """Generate formatted Markdown release notes with file hashes and stats."""
         lines = [
             f"# Accessible Maps Dataset Release: `{self.dataset_name}` ({self.version})",
             "",
-            f"- **Dataset:** `{self.dataset_name}`",
-            f"- **Version:** `{self.version}`",
+            f"- **Dataset**: `{self.dataset_name}`",
+            f"- **Version**: `{self.version}`",
+            f"- **Release Tag**: `{self.release_tag}`",
+            f"- **Published**: `{self.created_at}`",
+            "",
         ]
 
         if self.base_version:
-            lines.append(f"- **Delta Base Version:** `{self.base_version}`")
+            lines.extend(
+                [
+                    "## Delta Update",
+                    f"- **Base Version**: `{self.base_version}`",
+                    f"- **Target Version**: `{self.version}`",
+                ]
+            )
+            if self.delta_stats:
+                lines.extend(
+                    [
+                        f"- **Inserts**: {self.delta_stats.get('inserts', 0):,}",
+                        f"- **Updates**: {self.delta_stats.get('updates', 0):,}",
+                        f"- **Deletes**: {self.delta_stats.get('deletes', 0):,}",
+                    ]
+                )
+            if self.manifest_signature:
+                lines.append(
+                    f"- **Manifest Ed25519 Signature**: `{self.manifest_signature[:16]}...`"
+                )
+            if self.public_key:
+                lines.append(f"- **Public Key**: `{self.public_key}`")
+            lines.append("")
+
+        if self.table_stats:
+            lines.extend(
+                [
+                    "## Layer Record Counts",
+                    "",
+                    "| Layer | Record Count |",
+                    "| :--- | :--- |",
+                ]
+            )
+            for tbl, count in sorted(self.table_stats.items()):
+                lines.append(f"| `{tbl}` | {count:,} |")
+            lines.append("")
+
+        if self.assets:
+            lines.extend(
+                [
+                    "## Release Assets & Integrity Hashes",
+                    "",
+                    "| Asset | Size | SHA-256 Checksum |",
+                    "| :--- | :--- | :--- |",
+                ]
+            )
+            for a in self.assets:
+                size_str = (
+                    f"{a.size_bytes / (1024 * 1024):.2f} MB"
+                    if a.size_bytes >= 1024 * 1024
+                    else f"{a.size_bytes / 1024:.2f} KB"
+                )
+                lines.append(f"| `{a.filename}` | {size_str} | `{a.sha256}` |")
+            lines.append("")
 
         lines.extend(
             [
-                f"- **Release Tag:** `{self.release_tag}`",
-                f"- **Published:** `{self.created_at}`",
-                f"- **License:** [{self.license}](https://opendatacommons.org/licenses/odbl/)",
-                f"- **Attribution:** {self.attribution}",
-                "",
-                "## Table Summary",
-                "",
-                "| Layer / Table | Feature Count |",
-                "| :--- | :--- |",
+                "---",
+                "*Automated dataset generated by Accessible Maps Data Engine. "
+                "OpenStreetMap data licensed under ODbL.*",
             ]
         )
-
-        for table, count in sorted(self.table_stats.items()):
-            lines.append(f"| `{table}` | {count:,} |")
-
-        if self.delta_stats:
-            lines.extend(
-                [
-                    "",
-                    "## Delta Changes (vs Base)",
-                    "",
-                    f"- **New Features (Inserts):** {self.delta_stats.get('inserts', 0):,}",
-                    f"- **Modified Features (Updates):** {self.delta_stats.get('updates', 0):,}",
-                    f"- **Removed Features (Deletes):** {self.delta_stats.get('deletes', 0):,}",
-                ]
-            )
-
-        lines.extend(
-            [
-                "",
-                "## Assets & Checksums",
-                "",
-                "| Asset File | Size (Bytes) | SHA-256 Checksum |",
-                "| :--- | :--- | :--- |",
-            ]
-        )
-
-        for asset in self.assets:
-            lines.append(f"| `{asset.filename}` | {asset.size_bytes:,} | `{asset.sha256}` |")
-
-        if self.manifest_signature:
-            lines.extend(
-                [
-                    "",
-                    "## Cryptographic Verification",
-                    "",
-                    "The release manifest is cryptographically signed using Ed25519.",
-                    f"- **Public Key:** `{self.public_key}`",
-                    f"- **Manifest Signature:** `{self.manifest_signature}`",
-                ]
-            )
-
-        lines.append("")
         return "\n".join(lines)
 
 
 @dataclass(slots=True)
 class DeltaCatalogEntry:
-    """Catalog entry for an incremental delta update."""
+    """Catalog metadata for an available delta update between versions."""
 
     from_version: str
     to_version: str
-    release_tag: str
-    updated_at: str
-    delta_asset: str
+    asset: str
     download_url: str | None = None
-    manifest_url: str | None = None
     sha256: str | None = None
     size_bytes: int | None = None
-    manifest_signature: str | None = None
-    public_key: str | None = None
-    delta_stats: dict[str, int] = field(default_factory=dict)
+    format: str = "tar.zst"  # 'tar.zst' or 'zip'
+    signature: str | None = None
+    manifest_url: str | None = None
+    updated_at: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -194,6 +189,10 @@ class RegionCatalogEntry:
     full_dataset_download_url: str | None = None
     full_dataset_sha256: str | None = None
     full_dataset_size_bytes: int | None = None
+    zst_dataset_asset: str | None = None
+    zst_dataset_download_url: str | None = None
+    zst_dataset_sha256: str | None = None
+    zst_dataset_size_bytes: int | None = None
     release_html_url: str | None = None
     table_stats: dict[str, int] = field(default_factory=dict)
     available_deltas: list[DeltaCatalogEntry] = field(default_factory=list)
@@ -211,6 +210,14 @@ class RegionCatalogEntry:
                 "size_bytes": self.full_dataset_size_bytes,
                 "table_stats": self.table_stats,
             },
+            "zst_dataset": {
+                "asset": self.zst_dataset_asset,
+                "download_url": self.zst_dataset_download_url,
+                "sha256": self.zst_dataset_sha256,
+                "size_bytes": self.zst_dataset_size_bytes,
+            }
+            if self.zst_dataset_asset
+            else None,
             "release_html_url": self.release_html_url,
             "available_deltas": [d.to_dict() for d in self.available_deltas],
         }
@@ -218,6 +225,7 @@ class RegionCatalogEntry:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RegionCatalogEntry:
         full_info = data.get("full_dataset", {})
+        zst_info = data.get("zst_dataset") or {}
         deltas = [DeltaCatalogEntry.from_dict(d) for d in data.get("available_deltas", [])]
         return cls(
             region_name=data["region_name"],
@@ -228,6 +236,10 @@ class RegionCatalogEntry:
             full_dataset_download_url=full_info.get("download_url"),
             full_dataset_sha256=full_info.get("sha256"),
             full_dataset_size_bytes=full_info.get("size_bytes"),
+            zst_dataset_asset=zst_info.get("asset"),
+            zst_dataset_download_url=zst_info.get("download_url"),
+            zst_dataset_sha256=zst_info.get("sha256"),
+            zst_dataset_size_bytes=zst_info.get("size_bytes"),
             release_html_url=data.get("release_html_url"),
             table_stats=dict(full_info.get("table_stats", {})),
             available_deltas=deltas,
@@ -240,6 +252,7 @@ class DatasetCatalog:
 
     catalog_version: str = "1.0"
     updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    attribution: str = "© OpenStreetMap contributors, licensed under ODbL"
     regions: dict[str, RegionCatalogEntry] = field(default_factory=dict)
 
     def add_release(
@@ -263,14 +276,32 @@ class DatasetCatalog:
                 )
             return None
 
+        # 1. Locate full .gpkg.zip asset
         full_asset = next(
-            (a for a in metadata.assets if a.filename.endswith((".gpkg.zip", ".gpkg"))),
+            (
+                a
+                for a in metadata.assets
+                if a.filename.endswith(".gpkg.zip")
+                or (a.filename.endswith(".zip") and "delta" not in a.filename)
+                or a.filename.endswith(".gpkg")
+            ),
             None,
         )
         full_download_url = (
             full_asset.download_url
             if full_asset and full_asset.download_url
             else (_resolve_url(full_asset.filename) if full_asset else None)
+        )
+
+        # 2. Locate .gpkg.zst asset
+        zst_asset = next(
+            (a for a in metadata.assets if a.filename.endswith(".gpkg.zst")),
+            None,
+        )
+        zst_download_url = (
+            zst_asset.download_url
+            if zst_asset and zst_asset.download_url
+            else (_resolve_url(zst_asset.filename) if zst_asset else None)
         )
 
         entry = self.regions.get(metadata.dataset_name)
@@ -284,6 +315,10 @@ class DatasetCatalog:
                 full_dataset_download_url=full_download_url,
                 full_dataset_sha256=full_asset.sha256 if full_asset else None,
                 full_dataset_size_bytes=full_asset.size_bytes if full_asset else None,
+                zst_dataset_asset=zst_asset.filename if zst_asset else None,
+                zst_dataset_download_url=zst_download_url,
+                zst_dataset_sha256=zst_asset.sha256 if zst_asset else None,
+                zst_dataset_size_bytes=zst_asset.size_bytes if zst_asset else None,
                 release_html_url=release_html_url,
                 table_stats=metadata.table_stats,
             )
@@ -298,6 +333,11 @@ class DatasetCatalog:
                 entry.full_dataset_download_url = full_download_url
                 entry.full_dataset_sha256 = full_asset.sha256
                 entry.full_dataset_size_bytes = full_asset.size_bytes
+            if zst_asset:
+                entry.zst_dataset_asset = zst_asset.filename
+                entry.zst_dataset_download_url = zst_download_url
+                entry.zst_dataset_sha256 = zst_asset.sha256
+                entry.zst_dataset_size_bytes = zst_asset.size_bytes
             entry.table_stats = metadata.table_stats
 
         if metadata.base_version:
@@ -329,42 +369,55 @@ class DatasetCatalog:
                 )
             ]
 
-            entry.available_deltas.append(
-                DeltaCatalogEntry(
-                    from_version=metadata.base_version,
-                    to_version=metadata.version,
-                    release_tag=metadata.release_tag,
-                    updated_at=metadata.created_at,
-                    delta_asset=delta_asset.filename if delta_asset else "",
-                    download_url=delta_download_url,
-                    manifest_url=manifest_url,
-                    sha256=delta_asset.sha256 if delta_asset else None,
-                    size_bytes=delta_asset.size_bytes if delta_asset else None,
-                    manifest_signature=metadata.manifest_signature,
-                    public_key=metadata.public_key,
-                    delta_stats=metadata.delta_stats or {},
+            if delta_asset:
+                fmt = "tar.zst" if delta_asset.filename.endswith(".tar.zst") else "zip"
+                entry.available_deltas.append(
+                    DeltaCatalogEntry(
+                        from_version=metadata.base_version,
+                        to_version=metadata.version,
+                        asset=delta_asset.filename,
+                        download_url=delta_download_url,
+                        sha256=delta_asset.sha256,
+                        size_bytes=delta_asset.size_bytes,
+                        format=fmt,
+                        signature=metadata.manifest_signature,
+                        manifest_url=manifest_url,
+                        updated_at=metadata.created_at,
+                    )
                 )
-            )
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "catalog_version": self.catalog_version,
             "updated_at": self.updated_at,
-            "regions": {k: v.to_dict() for k, v in sorted(self.regions.items())},
+            "attribution": self.attribution,
+            "regions": {name: entry.to_dict() for name, entry in self.regions.items()},
         }
 
-    def to_json(self, indent: int = 2) -> str:
-        return json.dumps(self.to_dict(), indent=indent, sort_keys=True)
+    def to_json(self, indent: int | None = 2) -> str:
+        return json.dumps(self.to_dict(), indent=indent)
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DatasetCatalog:
-        regions = {k: RegionCatalogEntry.from_dict(v) for k, v in data.get("regions", {}).items()}
+        regions = {
+            name: RegionCatalogEntry.from_dict(entry)
+            for name, entry in data.get("regions", {}).items()
+        }
         return cls(
             catalog_version=data.get("catalog_version", "1.0"),
-            updated_at=data.get("updated_at", ""),
+            updated_at=data.get("updated_at", datetime.now(UTC).isoformat()),
+            attribution=data.get(
+                "attribution", "© OpenStreetMap contributors, licensed under ODbL"
+            ),
             regions=regions,
         )
 
     @classmethod
     def from_json(cls, json_str: str) -> DatasetCatalog:
         return cls.from_dict(json.loads(json_str))
+
+    def write_json(self, path: Path, indent: int | None = 2) -> Path:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(self.to_json(indent=indent), encoding="utf-8")
+        return path

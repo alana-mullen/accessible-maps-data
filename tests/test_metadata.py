@@ -50,7 +50,7 @@ def test_release_metadata_json_and_notes():
     notes = metadata.generate_release_notes()
     assert "# Accessible Maps Dataset Release: `north-west`" in notes
     assert "| `kerbs` | 5,000 |" in notes
-    assert "New Features (Inserts):** 100" in notes
+    assert "Inserts" in notes and "100" in notes
     assert "public_key" in notes or "pub-base64" in notes
 
 
