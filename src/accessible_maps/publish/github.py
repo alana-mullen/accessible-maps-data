@@ -7,7 +7,7 @@ from typing import Any
 
 import requests
 
-from .metadata import ReleaseMetadata
+from .metadata import AssetInfo, ReleaseMetadata
 from .validator import validate_release_package
 
 LOGGER = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ def fetch_github_releases_metadata(
     repo: str,
     token: str | None = None,
 ) -> list[ReleaseMetadata]:
-    """Fetch all ReleaseMetadata objects from metadata.json assets across published releases in a GitHub repo."""
+    """Fetch all ReleaseMetadata objects across published releases in a GitHub repo."""
     token = token or os.getenv("GITHUB_TOKEN")
     headers = {
         "Accept": "application/vnd.github+json",
@@ -164,28 +164,103 @@ def fetch_github_releases_metadata(
     if token:
         headers["Authorization"] = f"Bearer {token}"
 
-    api_url = f"https://api.github.com/repos/{repo}/releases?per_page=100"
-    resp = requests.get(api_url, headers=headers, timeout=30.0)
-    resp.raise_for_status()
-    releases = resp.json()
-
     results: list[ReleaseMetadata] = []
-    for rel in releases:
-        assets = rel.get("assets", [])
-        meta_asset = next((a for a in assets if a.get("name") == "metadata.json"), None)
-        if meta_asset and meta_asset.get("browser_download_url"):
-            try:
-                meta_resp = requests.get(
-                    meta_asset["browser_download_url"], headers=headers, timeout=15.0
+    page = 1
+
+    while True:
+        api_url = f"https://api.github.com/repos/{repo}/releases?per_page=100&page={page}"
+        resp = requests.get(api_url, headers=headers, timeout=30.0)
+        if resp.status_code != 200:
+            LOGGER.warning("Failed to fetch releases (HTTP %d): %s", resp.status_code, resp.text)
+            break
+        releases = resp.json()
+        if not releases or not isinstance(releases, list):
+            break
+
+        for rel in releases:
+            tag_name = rel.get("tag_name", "")
+            assets = rel.get("assets", [])
+
+            # Check if metadata.json asset is directly attached
+            meta_asset = next((a for a in assets if a.get("name") == "metadata.json"), None)
+            parsed_meta: ReleaseMetadata | None = None
+
+            if meta_asset and meta_asset.get("browser_download_url"):
+                try:
+                    meta_resp = requests.get(
+                        meta_asset["browser_download_url"],
+                        headers={"User-Agent": "accessible-maps-publisher/1.0"},
+                        timeout=15.0,
+                    )
+                    if meta_resp.status_code == 200:
+                        parsed_meta = ReleaseMetadata.from_json(meta_resp.text)
+                except Exception as exc:
+                    LOGGER.debug("Could not fetch direct metadata.json: %s", exc)
+
+            if parsed_meta is not None:
+                results.append(parsed_meta)
+                continue
+
+            # Fallback: Reconstruct metadata from GitHub release assets & checksums.txt
+            raw_tag = tag_name.lstrip("v")
+            parts = raw_tag.split("-", 1)
+            if len(parts) >= 2:
+                version = parts[0]
+                dataset_name = parts[1]
+            else:
+                version = raw_tag
+                dataset_name = rel.get("name", raw_tag)
+
+            checksum_map: dict[str, str] = {}
+            chk_asset = next((a for a in assets if a.get("name") == "checksums.txt"), None)
+            if chk_asset and chk_asset.get("browser_download_url"):
+                try:
+                    chk_resp = requests.get(
+                        chk_asset["browser_download_url"],
+                        headers={"User-Agent": "accessible-maps-publisher/1.0"},
+                        timeout=15.0,
+                    )
+                    if chk_resp.status_code == 200:
+                        for line in chk_resp.text.splitlines():
+                            line_parts = line.strip().split()
+                            if len(line_parts) >= 2:
+                                checksum_map[line_parts[1]] = line_parts[0]
+                except Exception as exc:
+                    LOGGER.debug("Could not fetch checksums.txt: %s", exc)
+
+            asset_infos: list[AssetInfo] = []
+            for a in assets:
+                filename = a.get("name", "")
+                content_type = "application/octet-stream"
+                if filename.endswith(".zip"):
+                    content_type = "application/zip"
+                elif filename.endswith(".zst"):
+                    content_type = "application/zstd"
+                elif filename.endswith(".json"):
+                    content_type = "application/json"
+                elif filename.endswith(".txt"):
+                    content_type = "text/plain"
+
+                asset_infos.append(
+                    AssetInfo(
+                        filename=filename,
+                        sha256=checksum_map.get(filename, ""),
+                        size_bytes=a.get("size", 0),
+                        content_type=content_type,
+                        download_url=a.get("browser_download_url"),
+                    )
                 )
-                if meta_resp.status_code == 200:
-                    meta = ReleaseMetadata.from_json(meta_resp.text)
-                    results.append(meta)
-            except (requests.RequestException, ValueError, KeyError) as exc:
-                LOGGER.warning(
-                    "Could not fetch metadata for release %s: %s",
-                    rel.get("tag_name"),
-                    exc,
-                )
+
+            reconstructed = ReleaseMetadata(
+                release_tag=tag_name,
+                dataset_name=dataset_name,
+                version=version,
+                assets=asset_infos,
+            )
+            results.append(reconstructed)
+
+        if len(releases) < 100:
+            break
+        page += 1
 
     return results

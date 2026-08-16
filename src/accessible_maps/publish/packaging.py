@@ -207,6 +207,17 @@ def package_release(
     metadata_path = output_dir / "metadata.json"
     metadata_path.write_text(metadata.to_json(indent=2), encoding="utf-8")
 
+    # Include metadata.json itself in metadata.assets so publisher uploads it
+    metadata.assets.append(
+        AssetInfo(
+            filename="metadata.json",
+            sha256=sha256_file(metadata_path),
+            size_bytes=metadata_path.stat().st_size,
+            content_type="application/json",
+        )
+    )
+    metadata_path.write_text(metadata.to_json(indent=2), encoding="utf-8")
+
     # 8. Write release_notes.md
     notes_path = output_dir / "release_notes.md"
     notes_path.write_text(metadata.generate_release_notes(), encoding="utf-8")
