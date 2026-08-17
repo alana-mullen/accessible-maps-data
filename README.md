@@ -151,6 +151,14 @@ accessible-maps-build publish-release \
   --release-dir releases/greater-london/
 ```
 
+### 10. Fetch & Update Region Boundaries
+
+Fetch geographic bounding boxes from Nominatim and automatically regenerate boundary polygons in `config.py`:
+
+```bash
+accessible-maps-build fetch-boundaries
+```
+
 ## GitHub Actions Workflows
 
 1. **`ci.yml`**: Runs code quality checks (`ruff check .`, `ruff format --check .`) and full pytest test suite across matrix targets.
