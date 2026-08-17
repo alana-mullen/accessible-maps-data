@@ -537,7 +537,8 @@ def _fetch_boundaries(args: argparse.Namespace) -> int:
     output_content = f"""from __future__ import annotations
 
 from dataclasses import dataclass
-from .constants import GEOFABRIK_EUROPE, GEOFABRIK_UK, GEOFABRIK_ENGLAND
+
+from .constants import GEOFABRIK_ENGLAND, GEOFABRIK_EUROPE, GEOFABRIK_UK
 
 
 @dataclass(frozen=True, slots=True)
@@ -549,7 +550,7 @@ class Region:
 
 REGIONS: tuple[Region, ...] = (
 {regions_joined},
-)"""
+)
 
 
 def get_region(name: str) -> Region:
