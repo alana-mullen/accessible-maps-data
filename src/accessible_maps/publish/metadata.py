@@ -196,6 +196,7 @@ class RegionCatalogEntry:
     release_html_url: str | None = None
     table_stats: dict[str, int] = field(default_factory=dict)
     available_deltas: list[DeltaCatalogEntry] = field(default_factory=list)
+    boundary: list[list[float]] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -220,6 +221,7 @@ class RegionCatalogEntry:
             else None,
             "release_html_url": self.release_html_url,
             "available_deltas": [d.to_dict() for d in self.available_deltas],
+            "boundary": self.boundary,
         }
 
     @classmethod
@@ -243,6 +245,7 @@ class RegionCatalogEntry:
             release_html_url=data.get("release_html_url"),
             table_stats=dict(full_info.get("table_stats", {})),
             available_deltas=deltas,
+            boundary=data.get("boundary"),
         )
 
 
@@ -304,6 +307,14 @@ class DatasetCatalog:
             else (_resolve_url(zst_asset.filename) if zst_asset else None)
         )
 
+        # Resolve boundary from config
+        from accessible_maps.config import REGIONS
+        boundary_coords = None
+        for r in REGIONS:
+            if r.name == metadata.dataset_name:
+                boundary_coords = [list(pt) for pt in r.boundary] if r.boundary else None
+                break
+
         entry = self.regions.get(metadata.dataset_name)
         if entry is None:
             entry = RegionCatalogEntry(
@@ -321,6 +332,7 @@ class DatasetCatalog:
                 zst_dataset_size_bytes=zst_asset.size_bytes if zst_asset else None,
                 release_html_url=release_html_url,
                 table_stats=metadata.table_stats,
+                boundary=boundary_coords,
             )
             self.regions[metadata.dataset_name] = entry
         else:

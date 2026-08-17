@@ -216,6 +216,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     schema_cmd.set_defaults(handler=_export_schemas)
 
+    # fetch-boundaries
+    fetch_cmd = subparsers.add_parser(
+        "fetch-boundaries",
+        help="Fetch and update region boundary polygons from Nominatim.",
+    )
+    fetch_cmd.set_defaults(handler=_fetch_boundaries)
+
     return parser
 
 
@@ -428,6 +435,132 @@ def _export_schemas(args: argparse.Namespace) -> int:
     )
     for name, path in exported.items():
         console.print(f"  - {name} ({path})")
+    return 0
+
+
+def _fetch_boundaries(args: argparse.Namespace) -> int:
+    import urllib.request
+    import urllib.parse
+    import json
+    import time
+    import inspect
+    from . import config
+
+    config_path = Path(inspect.getfile(config))
+    console.print(f"[bold blue]Loading regions from[/bold blue] [cyan]{config_path}[/cyan]...")
+
+    boundary_map = {}
+
+    for r in REGIONS:
+        name = r.name
+        # Build query
+        query_name = name.replace("-", " ")
+        if name == "scotland":
+            query = "Scotland, UK"
+        elif name == "wales":
+            query = "Wales, UK"
+        elif name == "northern-ireland":
+            query = "Northern Ireland, UK"
+        elif name == "isle-of-man":
+            query = "Isle of Man"
+        elif name == "guernsey-jersey":
+            query = "Channel Islands"
+        elif "hull" in name:
+            query = "East Riding of Yorkshire, UK"
+        else:
+            query = f"{query_name}, England, UK"
+
+        url_encoded = urllib.parse.quote(query)
+        nominatim_url = f"https://nominatim.openstreetmap.org/search?q={url_encoded}&format=json&limit=1"
+
+        console.print(f"Fetching boundary for [bold cyan]{name}[/bold cyan]...")
+
+        req = urllib.request.Request(
+            nominatim_url,
+            headers={
+                "User-Agent": "AccessibleMaps/1.0 (uk.me.alanamullen.accessiblemaps)"
+            }
+        )
+
+        try:
+            with urllib.request.urlopen(req) as response:
+                data = json.loads(response.read().decode())
+                if data:
+                    bbox = data[0].get("boundingbox")
+                    if bbox and len(bbox) == 4:
+                        south, north, west, east = map(float, bbox)
+                        poly = [
+                            [round(west, 4), round(south, 4)],
+                            [round(east, 4), round(south, 4)],
+                            [round(east, 4), round(north, 4)],
+                            [round(west, 4), round(north, 4)],
+                            [round(west, 4), round(south, 4)]
+                        ]
+                        boundary_map[name] = poly
+                        console.print(f"  -> Found: {bbox}")
+                    else:
+                        console.print(f"[yellow]  -> No bbox for {name}[/yellow]")
+                else:
+                    console.print(f"[yellow]  -> No results for {name}[/yellow]")
+        except Exception as e:
+            console.print(f"[red]  -> Error: {e}[/red]")
+
+        time.sleep(1.2)
+
+    new_regions_code = []
+    for r in REGIONS:
+        name = r.name
+        url = r.source_url
+        poly = boundary_map.get(name) or [list(pt) for pt in r.boundary]
+        if poly:
+            poly_str = ", ".join([f"({pt[0]}, {pt[1]})" for pt in poly])
+            boundary_code = f"        boundary=({poly_str}),\n"
+        else:
+            boundary_code = "        boundary=(),\n"
+
+        # Simplify URL using base variables
+        if url.startswith("https://download.geofabrik.de/europe/united-kingdom/england/"):
+            url_val = 'f"{GEOFABRIK_ENGLAND}/' + url.split("england/")[-1] + '"'
+        elif url.startswith("https://download.geofabrik.de/europe/united-kingdom/"):
+            url_val = 'f"{GEOFABRIK_UK}/' + url.split("united-kingdom/")[-1] + '"'
+        elif url.startswith("https://download.geofabrik.de/europe/"):
+            url_val = 'f"{GEOFABRIK_EUROPE}/' + url.split("europe/")[-1] + '"'
+        else:
+            url_val = f'"{url}"'
+
+        new_regions_code.append(
+            f'    Region(\n        "{name}",\n        {url_val},\n{boundary_code}    )'
+        )
+
+    regions_joined = ",\n".join(new_regions_code)
+
+    output_content = f"""from __future__ import annotations
+
+from dataclasses import dataclass
+from .constants import GEOFABRIK_EUROPE, GEOFABRIK_UK, GEOFABRIK_ENGLAND
+
+
+@dataclass(frozen=True, slots=True)
+class Region:
+    name: str
+    source_url: str
+    boundary: tuple[tuple[float, float], ...] = ()
+
+
+REGIONS: tuple[Region, ...] = (
+{regions_joined},
+)"""
+
+
+def get_region(name: str) -> Region:
+    for region in REGIONS:
+        if region.name == name:
+            return region
+    raise ValueError(f"Unknown region: {{name}}")
+"""
+
+    config_path.write_text(output_content, encoding="utf-8")
+    console.print(f"[bold green]Updated boundaries for {len(REGIONS)} regions in config.py.[/bold green]")
     return 0
 
 
