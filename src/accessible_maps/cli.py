@@ -439,11 +439,12 @@ def _export_schemas(args: argparse.Namespace) -> int:
 
 
 def _fetch_boundaries(args: argparse.Namespace) -> int:
-    import urllib.request
-    import urllib.parse
+    import inspect
     import json
     import time
-    import inspect
+    import urllib.parse
+    import urllib.request
+
     from . import config
 
     config_path = Path(inspect.getfile(config))
